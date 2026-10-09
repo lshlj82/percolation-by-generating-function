@@ -276,7 +276,7 @@ footer p{ max-width:80ch; }
       <div class="stage-buttons">
         <button class="toggle colors-toggle" aria-pressed="false">Color all components</button>
         <button id="btn-tree-resample">New sample</button>
-        <button id="btn-tree-mc">Estimate P∞</button>
+        <button id="btn-tree-mc">Estimate P<sub>∞</sub></button>
       </div>
     </div>
   </div>
@@ -512,7 +512,7 @@ function sampleER(n, c) {
 let C = {};
 function readColors() {
   const s = getComputedStyle(document.documentElement), g = n => s.getPropertyValue(n).trim();
-  C = {ink: g('--ink'), muted: g('--muted'), rule: g('--rule'), giant: g('--giant'), crit: g('--crit'),
+  C = {ink: g('--ink'), muted: g('--muted'), rule: g('--rule'), giant: g('--giant'), giantHl: g('--giant-hl'), purpleHl: g('--purple-hl'), crit: g('--crit'),
        cm: g('--cm'), note: g('--note'), purple: g('--purple'), panel: g('--panel'),
        dark: document.documentElement.dataset.theme ? document.documentElement.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches};
 }
@@ -610,7 +610,19 @@ function plot(cv, o) {
   ctx.font = "13px 'IBM Plex Sans', system-ui, sans-serif";
   ctx.fillStyle = C.ink; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
   if (o.xlabel) ctx.fillText(o.xlabel, m.l + pw / 2, H - 1);
-  if (o.ylabel) { ctx.save(); ctx.translate(13, m.t + ph / 2); ctx.rotate(-Math.PI / 2); ctx.textBaseline = 'middle'; ctx.fillText(o.ylabel, 0, 0); ctx.restore(); }
+  if (o.ylabel) {
+    // o.ylabel may be a string or [main, subscript]
+    const [main, sub] = Array.isArray(o.ylabel) ? o.ylabel : [o.ylabel, ''];
+    ctx.save(); ctx.translate(13, m.t + ph / 2); ctx.rotate(-Math.PI / 2); ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
+    const wMain = ctx.measureText(main).width;
+    ctx.font = "10px 'IBM Plex Sans', system-ui, sans-serif";
+    const wSub = sub ? ctx.measureText(sub).width + 1 : 0;
+    ctx.font = "13px 'IBM Plex Sans', system-ui, sans-serif";
+    const x0 = -(wMain + wSub) / 2;
+    ctx.fillText(main, x0, 0);
+    if (sub) { ctx.font = "10px 'IBM Plex Sans', system-ui, sans-serif"; ctx.fillText(sub, x0 + wMain + 1, 4); }
+    ctx.restore();
+  }
 }
 function setRead(el, rows) {
   el.innerHTML = rows.map(([k, v, t]) => `<div><dt>${k}</dt><dd>${v}${t ? ` <span class="theory">${t}</span>` : ''}</dd></div>`).join('');
@@ -686,26 +698,38 @@ class GraphView {
     const {ctx, W, H} = s, {n, x, y, a, b, m, rank} = this;
     const sx = W / 2 - 12, sy = H / 2 - 12, X = i => W / 2 + x[i] * sx, Y = i => H / 2 + y[i] * sy;
     const colorOf = rk => (rk === 0 ? C.giant : rk < 0 || !st.colorAll ? C.muted : compColor(rk));
-    const r = n > 400 ? 2.2 : 2.8;
-    // edges, grouped by color
-    const groups = new Map();
-    for (let k = 0; k < m; k++) { const col = colorOf(rank[a[k]]); if (!groups.has(col)) groups.set(col, []); groups.get(col).push(k); }
-    for (const [col, ks] of groups) {
-      const isG = col === C.giant, isMuted = col === C.muted;
-      ctx.strokeStyle = col; ctx.globalAlpha = isMuted ? 0.4 : isG ? 0.55 : 0.8; ctx.lineWidth = isMuted ? 1 : 1.3;
-      ctx.beginPath();
+    const emph = st.colorAll;                     // emphasize the largest component when the others are colored too
+    const r = n > 400 ? 2.2 : 2.8, rOther = emph ? r * 0.8 : r, rG = emph ? r + 1.6 : r + .6;
+    const line = (ks, col, w, al) => {
+      ctx.strokeStyle = col; ctx.lineWidth = w; ctx.globalAlpha = al; ctx.beginPath();
       for (const k of ks) { ctx.moveTo(X(a[k]), Y(a[k])); ctx.lineTo(X(b[k]), Y(b[k])); }
       ctx.stroke();
-    }
-    ctx.globalAlpha = 1;
-    const ng = new Map();
-    for (let i = 0; i < n; i++) { const col = colorOf(rank[i]); if (!ng.has(col)) ng.set(col, []); ng.get(col).push(i); }
-    for (const [col, is] of ng) {
-      const rr = col === C.muted ? r : r + .6;
+    };
+    const dots = (is, col, rr) => {
       ctx.fillStyle = col; ctx.beginPath();
       for (const i of is) { ctx.moveTo(X(i) + rr, Y(i)); ctx.arc(X(i), Y(i), rr, 0, 2 * Math.PI); }
       ctx.fill();
+    };
+    // everything except the largest component first
+    const groups = new Map(), giantE = [];
+    for (let k = 0; k < m; k++) {
+      if (rank[a[k]] === 0) { giantE.push(k); continue; }
+      const col = colorOf(rank[a[k]]); if (!groups.has(col)) groups.set(col, []); groups.get(col).push(k);
     }
+    for (const [col, ks] of groups) line(ks, col, col === C.muted ? 1 : 1.2, col === C.muted ? 0.4 : emph ? 0.5 : 0.8);
+    ctx.globalAlpha = emph ? 0.6 : 1;
+    const ng = new Map(), giantN = [];
+    for (let i = 0; i < n; i++) {
+      if (rank[i] === 0) { giantN.push(i); continue; }
+      const col = colorOf(rank[i]); if (!ng.has(col)) ng.set(col, []); ng.get(col).push(i);
+    }
+    for (const [col, is] of ng) dots(is, col, col === C.muted ? rOther : rOther + .4);
+    // the largest component on top, with a halo when the others are colored
+    if (emph) line(giantE, C.giantHl, 6, 1);
+    line(giantE, C.giant, emph ? 2.2 : 1.3, emph ? 0.95 : 0.55);
+    ctx.globalAlpha = 1;
+    if (emph) dots(giantN, C.panel, rG + 1.4);
+    dots(giantN, C.giant, rG);
   }
   frame() { this.tick(); this.tick(); this.draw(); if (this.alpha > 0.01) requestAnimationFrame(this.frame); else this.running = false; }
   kick() {
@@ -903,7 +927,7 @@ function treeUpdate() {
     ['z', `${st.z}`], ['generations D', `${D}`, `(${n} nodes)`], ['p', fmt(p, 3)],
     ['occupied bonds', `${occ} / ${n - 1}`], ['root cluster', `${tree.rootSize} nodes`],
     ['reaches generation D', tree.reach ? 'yes' : 'no', `probability ${fmt(tree.PD)}`],
-    ['P∞ (D → ∞)', fmt(bethe(st.z, p).P)]
+    ['P<sub>∞</sub> (D → ∞)', fmt(bethe(st.z, p).P)]
   ].concat(st.treeMC && st.treeMC.key === `${st.z}|${st.c}` ? [['estimate, depth 50', fmt(st.treeMC.P), `exact ${fmt(tree.P50)}`]] : []));
 }
 function drawTree() {
@@ -916,15 +940,25 @@ function drawTree() {
   ctx.strokeStyle = C.rule; ctx.lineWidth = 1; ctx.beginPath();
   for (let k = 1; k < n; k++) if (!(r[k - 1] < p)) { ctx.moveTo(X(k), Y(k)); ctx.lineTo(X(par[k]), Y(par[k])); }
   ctx.stroke();
-  for (let k = 1; k < n; k++) if (r[k - 1] < p) {
+  const emph = st.colorAll;                     // emphasize the root cluster when the others are colored too
+  const seg = (k, col, w, al) => { ctx.strokeStyle = col; ctx.lineWidth = w; ctx.globalAlpha = al;
+    ctx.beginPath(); ctx.moveTo(X(k), Y(k)); ctx.lineTo(X(par[k]), Y(par[k])); ctx.stroke(); };
+  for (let k = 1; k < n; k++) if (r[k - 1] < p && cls[k] !== 0) {
     const col = colorOf(cls[k]);
-    ctx.strokeStyle = col; ctx.lineWidth = cls[k] === 0 ? 2 : 1.4; ctx.globalAlpha = col === C.muted ? .6 : .9;
-    ctx.beginPath(); ctx.moveTo(X(k), Y(k)); ctx.lineTo(X(par[k]), Y(par[k])); ctx.stroke();
+    seg(k, col, emph ? 1.1 : 1.4, col === C.muted ? .6 : emph ? .5 : .9);
   }
+  const rad = n > 800 ? 1.4 : n > 300 ? 2.2 : 3, rOther = emph ? rad * 0.8 : rad, rRoot = emph ? rad + 1.6 : rad + .6;
+  ctx.globalAlpha = emph ? 0.6 : 1;
+  for (let i = 0; i < n; i++) if (cls[i] !== 0) {
+    ctx.fillStyle = colorOf(cls[i]); ctx.beginPath(); ctx.arc(X(i), Y(i), rOther, 0, 2 * Math.PI); ctx.fill();
+  }
+  // root cluster on top, with a halo when the others are colored
+  if (emph) for (let k = 1; k < n; k++) if (r[k - 1] < p && cls[k] === 0) seg(k, C.purpleHl, 6, 1);
+  for (let k = 1; k < n; k++) if (r[k - 1] < p && cls[k] === 0) seg(k, C.purple, emph ? 2.6 : 2, .95);
   ctx.globalAlpha = 1;
-  const rad = n > 800 ? 1.4 : n > 300 ? 2.2 : 3;
-  for (let i = 0; i < n; i++) {
-    ctx.fillStyle = colorOf(cls[i]); ctx.beginPath(); ctx.arc(X(i), Y(i), cls[i] === 0 ? rad + .6 : rad, 0, 2 * Math.PI); ctx.fill();
+  for (let i = 0; i < n; i++) if (cls[i] === 0) {
+    if (emph) { ctx.fillStyle = C.panel; ctx.beginPath(); ctx.arc(X(i), Y(i), rRoot + 1.4, 0, 2 * Math.PI); ctx.fill(); }
+    ctx.fillStyle = C.purple; ctx.beginPath(); ctx.arc(X(i), Y(i), rRoot, 0, 2 * Math.PI); ctx.fill();
   }
   ctx.strokeStyle = C.purple; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(W / 2, H / 2, rad + 5, 0, 2 * Math.PI); ctx.stroke();
 }
@@ -946,7 +980,7 @@ function drawBethe() {
   const cs = [...lin(0, 1, 30), ...lin(1, Math.min(1.4, cmax), 120), ...lin(Math.min(1.4, cmax), cmax, 120)];
   const curveC = zz => cs.filter(x => x <= zz - 1).map(x => [x, bethe(zz, x / (zz - 1)).P]);
   const ercs = [...lin(0, 1, 30), ...lin(1, 4, 240)];
-  plot($('#cv-bethe'), {x: [0, 4], y: [0, 1], xlabel: 'c = p(z − 1)', ylabel: 'P∞',
+  plot($('#cv-bethe'), {x: [0, 4], y: [0, 1], xlabel: 'c = p(z − 1)', ylabel: ['P', '∞'],
     vlines: [{x: c, color: C.purple}],
     lines: [{pts: ercs.map(x => [x, erS(x)]), color: C.ink, dash: [5, 4], width: 1.5},
             ...(z !== 3 ? [{pts: curveC(3), color: C.purple, width: 1.3, alpha: .35}] : []),
@@ -954,15 +988,15 @@ function drawBethe() {
     dots: c <= z - 1 ? [{x: c, y: bethe(z, c / (z - 1)).P, color: C.purple, r: 5}] : []});
   const pc = 1 / (z - 1), ps = [...lin(0, pc, 20), ...lin(pc, Math.min(1, pc * 1.6), 120), ...lin(Math.min(1, pc * 1.6), 1, 120)];
   const p = c / (z - 1);
-  plot($('#cv-bethe-p'), {x: [0, 1], y: [0, 1], xlabel: 'bond probability p', ylabel: 'P∞',
+  plot($('#cv-bethe-p'), {x: [0, 1], y: [0, 1], xlabel: 'bond probability p', ylabel: ['P', '∞'],
     vlines: [{x: pc, color: C.crit}],
     lines: [{pts: ps.map(q => [q, bethe(z, q).P]), color: C.purple, width: 2.6},
             ...(z === 3 ? [] : [{pts: ps.map(q => [q, bethe(3, q).P]), color: C.purple, width: 1.3, alpha: .35}])],
     dots: p <= 1 ? [{x: p, y: bethe(z, p).P, color: C.purple, r: 5}] : [],
-    notes: [{x: Math.min(pc + .02, .8), y: .9, text: `p_c = 1/${z - 1}`, color: C.crit}]});
+    notes: [{x: Math.min(pc + .02, .8), y: .9, text: `threshold p = 1/${z - 1}`, color: C.crit}]});
   const r = bethe(z, Math.min(p, 1));
-  const rows = [['z', `${z}`], ['p_c = 1/(z − 1)', fmt(pc, 4)], ['p = c/(z − 1)', p <= 1 ? fmt(p, 4) : '> 1 (outside range)'],
-    ['A', fmt(r.A, 4)], ['P∞', fmt(r.P, 4)]];
+  const rows = [['z', `${z}`], ['p<sub>c</sub> = 1/(z − 1)', fmt(pc, 4)], ['p = c/(z − 1)', p <= 1 ? fmt(p, 4) : '> 1 (outside range)'],
+    ['A', fmt(r.A, 4)], ['P<sub>∞</sub>', fmt(r.P, 4)]];
   if (z === 3 && p >= .5 && p <= 1) rows.push(['closed form 1 − ((1−p)/p)³', fmt(1 - ((1 - p) / p) ** 3, 4)]);
   rows.push(['ER S(c)', fmt(erS(c), 4)]);
   setRead($('#bethe-read'), rows);
