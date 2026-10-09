@@ -1,0 +1,1176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Percolation on random networks: an interactive derivation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<script>
+window.MathJax = {
+  tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']] },
+  svg: { fontCache: 'global' },
+  startup: { typeset: true }
+};
+</script>
+<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js"></script>
+<style>
+:root{
+  --paper:#F5F7FA; --panel:#FFFFFF; --ink:#17202C; --muted:#5B6677; --rule:#DCE1E8;
+  --giant:#137FA8; --giant-hl:#BDEEFA; --crit:#C2368C; --crit-hl:#FFD3F0;
+  --cm:#2A8A42; --cm-hl:#D3F3CD; --note:#C46F0C; --purple:#6E3B9C; --purple-hl:#E8DAF7;
+  --serif:'Source Serif 4', Georgia, 'Times New Roman', serif;
+  --sans:'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#10151C; --panel:#161D27; --ink:#E5EAF1; --muted:#9AA5B5; --rule:#2A3441;
+    --giant:#52C6EF; --giant-hl:rgba(82,198,239,.22); --crit:#F27DC6; --crit-hl:rgba(242,125,198,.2);
+    --cm:#6BD382; --cm-hl:rgba(107,211,130,.2); --note:#F2A64B; --purple:#BC8DEB; --purple-hl:rgba(188,141,235,.2);
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#10151C; --panel:#161D27; --ink:#E5EAF1; --muted:#9AA5B5; --rule:#2A3441;
+  --giant:#52C6EF; --giant-hl:rgba(82,198,239,.22); --crit:#F27DC6; --crit-hl:rgba(242,125,198,.2);
+  --cm:#6BD382; --cm-hl:rgba(107,211,130,.2); --note:#F2A64B; --purple:#BC8DEB; --purple-hl:rgba(188,141,235,.2);
+}
+:root{ box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px); }
+html{ scroll-padding-top:env(safe-area-inset-top,0px); }
+*,*::before,*::after{ box-sizing:inherit; }
+body{ margin:0; background:var(--paper); color:var(--ink); font-family:var(--serif);
+  font-size:1.0625rem; line-height:1.62; -webkit-font-smoothing:antialiased; }
+img,svg,canvas{ max-width:100%; }
+a{ color:var(--giant); }
+
+/* ---------- hero ---------- */
+.hero{ max-width:1080px; margin:0 auto; padding:44px 24px 8px; }
+.byline{ font-family:var(--sans); font-size:.9rem; color:var(--muted); margin:0 0 18px; }
+.hero h1{ font-size:clamp(2.1rem,5.4vw,3.6rem); line-height:1.04; font-weight:600; letter-spacing:-.015em;
+  margin:0; max-width:14ch; }
+.hero .scribble{ display:block; font-style:italic; color:var(--crit);
+  font-size:clamp(1.2rem,2.4vw,1.55rem); line-height:1.2; margin:.45em 0 0; }
+.topbar{ display:flex; justify-content:space-between; align-items:flex-start; gap:16px; margin:0 0 18px; }
+.topbar .byline{ margin:0; }
+#btn-theme{ flex:none; }
+.hero .lede{ max-width:62ch; margin:22px 0 22px; }
+.stage{ background:var(--panel); border:1px solid var(--rule); border-radius:16px; padding:14px 14px 10px; }
+#cv-net{ display:block; width:100%; height:clamp(300px,50vw,470px); }
+.stage-controls{ display:grid; grid-template-columns:minmax(0,1fr) auto; gap:10px 20px; align-items:center;
+  padding:10px 6px 4px; border-top:1px solid var(--rule); margin-top:6px; }
+.stage-buttons{ display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; align-items:center; }
+@media (max-width:640px){ .stage-controls{ grid-template-columns:1fr; } .stage-buttons{ justify-content:flex-start; } }
+
+/* ---------- controls ---------- */
+.ctrl{ display:grid; grid-template-columns:auto minmax(0,1fr) 4.2em; align-items:center; gap:12px;
+  font-family:var(--sans); font-size:.95rem; }
+.ctrl label{ white-space:nowrap; }
+.ctrl output{ font-variant-numeric:tabular-nums; text-align:right; font-weight:600; }
+input[type=range]{ width:100%; accent-color:var(--giant); min-height:28px; }
+.ctrl.cm input[type=range]{ accent-color:var(--cm); }
+.ctrl.bethe input[type=range]{ accent-color:var(--purple); }
+button, select{ font-family:var(--sans); font-size:.9rem; color:var(--ink); background:transparent;
+  border:1px solid var(--muted); border-radius:999px; padding:.42em 1em; cursor:pointer; }
+select{ border-radius:8px; padding:.35em .6em; background:var(--panel); }
+button:hover{ background:var(--rule); }
+button.toggle[aria-pressed="true"]{ background:var(--ink); color:var(--paper); border-color:var(--ink); }
+#cv-cmnet{ display:block; width:100%; height:clamp(300px,46vw,440px); }
+#cv-tree{ display:block; width:100%; height:clamp(340px,60vw,560px); }
+.status{ font-family:var(--sans); font-size:.85rem; color:var(--muted); }
+button:focus-visible, select:focus-visible, input:focus-visible{ outline:2px solid var(--giant); outline-offset:2px; }
+.seg{ display:inline-flex; border:1px solid var(--muted); border-radius:999px; overflow:hidden; }
+.seg button{ border:0; border-radius:0; }
+.seg button[aria-pressed="true"]{ background:var(--cm); color:var(--panel); }
+
+.read{ display:flex; flex-wrap:wrap; gap:6px 26px; margin:8px 6px 4px; font-family:var(--sans); font-size:.9rem; }
+.read div{ display:flex; gap:8px; align-items:baseline; }
+.read dt{ color:var(--muted); }
+.read dd{ margin:0; font-variant-numeric:tabular-nums; font-weight:600; }
+.read .theory{ color:var(--muted); font-weight:400; }
+
+/* ---------- document ---------- */
+.doc{ max-width:1080px; margin:0 auto; padding:0 24px 72px; }
+section{ padding-top:56px; }
+.col{ max-width:680px; }
+h2{ font-size:clamp(1.55rem,3vw,2.05rem); line-height:1.15; font-weight:600; margin:0 0 .6em; letter-spacing:-.01em; }
+h2 .num{ font-family:var(--sans); font-weight:500; color:var(--note); margin-right:.45em; font-variant-numeric:tabular-nums; }
+h3{ font-size:1.15rem; margin:1.6em 0 .4em; }
+p{ margin:0 0 1em; }
+.note{ font-family:var(--serif); font-style:italic; font-size:.95rem; line-height:1.45; color:var(--note); }
+.note.pink{ color:var(--crit); } .note.blue{ color:var(--giant); } .note.green{ color:var(--cm); } .note.purple{ color:var(--purple); }
+@media (min-width:1020px){
+  .note{ float:right; clear:right; width:250px; margin:.2em -300px .8em 24px; padding-left:12px; border-left:2px solid currentColor; }
+}
+@media (max-width:1019px){ .note{ display:block; margin:-.2em 0 1em; } }
+
+.eq{ overflow-x:auto; overflow-y:hidden; margin:.6em 0 1.1em; }
+.hl{ display:inline-block; padding:.15em .8em; border-radius:.4em .9em .5em .8em; }
+.hl.giant{ background:var(--giant-hl); } .hl.crit{ background:var(--crit-hl); }
+.hl.cm{ background:var(--cm-hl); } .hl.purple{ background:var(--purple-hl); }
+
+ol.recipe{ padding-left:1.4em; margin:0 0 1.2em; }
+ol.recipe li{ margin:.25em 0; padding-left:.2em; }
+
+.figs{ display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr)); gap:18px; margin:18px 0 10px; }
+figure{ margin:0; }
+.panel{ background:var(--panel); border:1px solid var(--rule); border-radius:12px; padding:10px 10px 6px; }
+.panel canvas{ display:block; width:100%; height:270px; }
+figcaption{ font-family:var(--sans); font-size:.85rem; color:var(--muted); line-height:1.45; margin:8px 4px 2px; }
+.ctrl-row{ display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr)); gap:10px 28px; align-items:center;
+  background:var(--panel); border:1px solid var(--rule); border-radius:12px; padding:12px 16px; margin:14px 0; }
+.ctrl-row .inline{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; font-family:var(--sans); font-size:.9rem; }
+
+.tablewrap{ overflow-x:auto; margin:10px 0 18px; }
+table{ border-collapse:collapse; font-family:var(--sans); font-size:.88rem; font-variant-numeric:tabular-nums; }
+th,td{ padding:.4em .8em; border-bottom:1px solid var(--rule); text-align:center; }
+th{ font-weight:600; }
+td:first-child, th:first-child{ text-align:left; }
+.mark{ background:var(--crit-hl); font-weight:600; }
+
+footer{ border-top:1px solid var(--rule); margin-top:64px; padding-top:20px; font-family:var(--sans); font-size:.85rem; color:var(--muted); }
+footer p{ max-width:80ch; }
+@media (prefers-reduced-motion: reduce){ *{ scroll-behavior:auto !important; } }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="topbar">
+    <p class="byline">Interactive companion to lecture notes by Sang Hoon Lee, 21st KIAS–APCTP Winter School on Statistical Physics. Web demo created by Claude Opus 5.5.</p>
+    <button id="btn-theme" aria-label="Switch color theme">Dark mode</button>
+  </div>
+  <h1>How a giant component appears</h1>
+  <span class="scribble">“percolated” somewhere in between</span>
+  <p class="lede">An empty graph has components of size 1; a complete graph has one component of size \(n\). Drag the mean degree \(c\) and watch a single component swallow a finite fraction of the network once \(c\) passes 1. Every pair in this \(G_{n,p}\) sample is linked with probability \(p=c/(n-1)\); the largest component is drawn in blue. Turn on “Color all components” to give every other component with two or more nodes its own color; isolated nodes stay grey.</p>
+
+  <div class="stage">
+    <canvas id="cv-net" aria-label="A random graph whose largest connected component is highlighted"></canvas>
+    <dl class="read" id="net-read"></dl>
+    <div class="stage-controls">
+      <div class="ctrl"><label for="c-hero">Mean degree \(c\)</label><input id="c-hero" data-bind="c" type="range" min="0" max="4" step="0.01"><output data-out="c"></output></div>
+      <div class="stage-buttons">
+        <select id="net-n" aria-label="Number of nodes">
+          <option value="150">n = 150</option><option value="300" selected>n = 300</option><option value="500">n = 500</option>
+        </select>
+        <button class="toggle colors-toggle" aria-pressed="false">Color all components</button>
+        <button id="btn-resample">New sample</button>
+        <button id="btn-sweep">Sweep c from 0</button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="doc">
+
+<!-- ================= 1. ER ================= -->
+<section id="er">
+  <div class="col">
+    <h2><span class="num">1</span>Erdős–Rényi: one self-consistent equation</h2>
+    <p>In Gilbert’s version of the random graph, \(G_{n,p}\), each of the \(\binom{n}{2}\) pairs is linked independently with probability \(p\). Instead of the giant component itself, track</p>
+    <p class="note">why the complement? it’s more convenient!</p>
+    <p>\(u\): the probability that a randomly chosen node does <em>not</em> belong to the giant component.</p>
+    <p>Node \(i\) stays outside if, for every other node \(j\), either there is no edge (probability \(1-p\)) or there is an edge but \(j\) is itself outside (probability \(pu\)). With \(p=c/(n-1)\),</p>
+    <div class="eq">\[u=(1-p+pu)^{n-1}=\Big[1-\frac{c}{n-1}(1-u)\Big]^{n-1}\;\xrightarrow{\;n\to\infty\;}\;e^{-c(1-u)}.\]</div>
+    <p class="note blue">first given by Erdős and Rényi in 1959</p>
+    <p>Our original interest is the fraction \(S=1-u\) of nodes in the giant component, which obeys</p>
+    <div class="eq"><span class="hl giant">\[S=1-e^{-cS}.\]</span></div>
+    <p>There is no closed form, but the graphical solution says everything: \(y=1-e^{-cS}\) is concave with slope \(c\) at the origin, so it crosses \(y=S\) a second time only when \(c&gt;1\).</p>
+  </div>
+
+  <div class="ctrl-row">
+    <div class="ctrl"><label for="c-er">Mean degree \(c\)</label><input id="c-er" data-bind="c" type="range" min="0" max="4" step="0.01"><output data-out="c"></output></div>
+    <div class="inline">
+      <span>Simulate</span>
+      <select id="sim-n" aria-label="Simulation size"><option value="500">n = 500</option><option value="2000" selected>n = 2000</option><option value="10000">n = 10000</option></select>
+      <select id="sim-r" aria-label="Samples per point"><option value="5">5 samples</option><option value="20" selected>20 samples</option><option value="50">50 samples</option></select>
+      <button id="btn-sim">Run simulations</button>
+    </div>
+  </div>
+
+  <div class="figs">
+    <figure class="panel"><canvas id="cv-ger"></canvas>
+      <figcaption>Graphical solution. Grey curves: \(c=0.5,\,1,\,1.5\). Blue: your \(c\). The dot marks the nontrivial root when it exists.</figcaption></figure>
+    <figure class="panel"><canvas id="cv-ser"></canvas>
+      <figcaption>Giant component size \(S(c)\) for \(n\to\infty\). Hollow dot: the sample above. Filled dots: ensemble averages of the largest component fraction.</figcaption></figure>
+  </div>
+  <dl class="read" id="er-read"></dl>
+</section>
+
+<!-- ================= 2. Critical ================= -->
+<section id="crit">
+  <div class="col">
+    <h2><span class="num">2</span>Near the threshold: \(\beta=\gamma=1\)</h2>
+    <p>Expanding \(S=1-e^{-cS}\) around \(S=0\),</p>
+    <div class="eq">\[S\approx 1-\Big(1-cS+\tfrac12 c^2S^2\Big)=cS-\tfrac12c^2S^2\;\Rightarrow\;1=c-\tfrac12c^2S,\]</div>
+    <div class="eq"><span class="hl crit">\[S=\frac{2(c-1)}{c^2}\propto(c-c^*)^{1}\propto(p-p^*)^{1},\qquad p^*=\frac{1}{n-1},\]</span></div>
+    <p>so \(S\propto(p-p_c)^\beta\) with <strong>\(\beta=1\)</strong>.</p>
+    <p class="note pink">in agreement with the mean-field universality class of percolation</p>
+    <p>The susceptibility analogue is the average size of the (non-percolating) component to which a randomly chosen node belongs. For the random graph (Newman, Sec. 11.6),</p>
+    <div class="eq">\[\langle s\rangle=\frac{1}{1-c+cS}.\]</div>
+    <p>From below, \(S=0\) and \(\langle s\rangle=(1-c)^{-1}\). From above, \(S\approx\frac{2}{c^2}(c-1)\), so</p>
+    <div class="eq">\[\langle s\rangle\approx\frac{1}{1-c+\frac{2}{c}(c-1)}=\frac{1}{c-1}\,\frac{1}{-1+\frac{2}{c}}\approx(c-1)^{-1}\quad(c\to1^+),\]</div>
+    <p>giving <strong>\(\gamma=1\)</strong>, with the same amplitude on both sides.</p>
+  </div>
+
+  <div class="figs">
+    <figure class="panel"><canvas id="cv-chi"></canvas>
+      <figcaption>\(\langle s\rangle\) against \(c\), as in Newman’s Fig. 11.5. Dots: simulations, excluding the largest component (run them in section 1). Finite \(n\) rounds off the divergence.</figcaption></figure>
+    <figure class="panel"><canvas id="cv-llS"></canvas>
+      <figcaption>Log–log: \(S\) against \(c-1\). Dashed: \(2(c-1)\). Slope 1 means \(\beta=1\).</figcaption></figure>
+    <figure class="panel"><canvas id="cv-llchi"></canvas>
+      <figcaption>Log–log: \(\langle s\rangle\) against \(|c-1|\). Pink: \(c&lt;1\). Blue: \(c&gt;1\). Both approach slope \(-1\).</figcaption></figure>
+  </div>
+
+  <div class="col">
+    <h3>Effective exponents, computed from the exact solution</h3>
+    <div class="tablewrap"><table id="eff-table"></table></div>
+    <p>The local slopes \(d\ln S/d\ln(c-1)\) and \(-d\ln\langle s\rangle/d\ln|c-1|\) converge to 1. Compare with percolation in finite dimensions (Christensen &amp; Moloney, <em>Complexity and Criticality</em>, Table 1.2):</p>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Exponent</th><th>\(d=2\)</th><th>\(d=3\)</th><th>\(d=4\)</th><th>\(d=5\)</th><th>\(d\ge6\)</th><th>Bethe</th></tr></thead>
+      <tbody>
+        <tr><td>\(\beta:\;P_\infty\propto(p-p_c)^\beta\)</td><td>5/36</td><td>0.4181(8)</td><td>0.657(9)</td><td>0.830(10)</td><td class="mark">1</td><td class="mark">1</td></tr>
+        <tr><td>\(\gamma:\;\chi\propto|p-p_c|^{-\gamma}\)</td><td>43/18</td><td>1.793(3)</td><td>1.442(16)</td><td>1.185(5)</td><td class="mark">1</td><td class="mark">1</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+</section>
+
+<!-- ================= 3. Bethe ================= -->
+<section id="bethe">
+  <div class="col">
+    <h2><span class="num">3</span>The same universality class as the Bethe lattice</h2>
+    <p>For bond percolation on a Bethe lattice with coordination number \(z\) (following Prof. Young-Sul Cho’s lecture), let \(A\) be the probability that a branch is connected to the infinite cluster. Then</p>
+    <div class="eq"><span class="hl purple">\[A=1-(1-pA)^{z-1},\qquad P_\infty=1-(1-pA)^{z},\qquad p_c=\frac{1}{z-1},\]</span></div>
+    <p>and \(P_\infty\propto(p-p_c)\), so \(\beta=1\) again. For \(z=3\) it closes: \(P_\infty=1-\big(\frac{1-p}{p}\big)^3\) for \(p\ge\frac12\).</p>
+    <p class="note purple">the same universality class!</p>
+    <p>The finite-\(n\) Erdős–Rényi equation has exactly the Bethe form under the dictionary below. Plotting against \(c=p(z-1)\), the Bethe curve tends to the Erdős–Rényi \(S(c)\) as \(z\) grows.</p>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Erdős–Rényi</th><th>Bethe lattice</th></tr></thead>
+      <tbody><tr><td>\(u\)</td><td>\(1-A\)</td></tr><tr><td>\(n-1\)</td><td>\(z-1\)</td></tr>
+      <tr><td>\(p_c=1/(n-1)\)</td><td>\(p_c=1/(z-1)\)</td></tr>
+      <tr><td>\(u=\big[1-\frac{c}{n-1}(1-u)\big]^{n-1}\)</td><td>\(1-A=(1-pA)^{z-1}\)</td></tr></tbody>
+    </table></div>
+  </div>
+  <div class="ctrl-row">
+    <div class="ctrl bethe"><label for="z">Coordination \(z\)</label><input id="z" type="range" min="3" max="40" step="1"><output id="z-out"></output></div>
+    <div class="ctrl"><label for="c-bethe">\(c=p(z-1)\)</label><input id="c-bethe" data-bind="c" type="range" min="0" max="4" step="0.01"><output data-out="c"></output></div>
+  </div>
+  <div class="figs">
+    <figure class="panel"><canvas id="cv-bethe"></canvas>
+      <figcaption>Purple: \(P_\infty\) on the Bethe lattice against \(c=p(z-1)\) (defined up to \(p=1\)). Faint purple: \(z=3\). Dashed: Erdős–Rényi \(S(c)\).</figcaption></figure>
+    <figure class="panel"><canvas id="cv-bethe-p"></canvas>
+      <figcaption>The same \(P_\infty\) against the bare bond probability \(p\), with \(p_c=1/(z-1)\) marked.</figcaption></figure>
+  </div>
+  <dl class="read" id="bethe-read"></dl>
+
+  <div class="col">
+    <h3>A sampled Bethe lattice</h3>
+    <p>A finite Cayley tree with the coordination number \(z\) chosen above, grown out to generation \(D\) (as deep as keeps the drawing readable). Each bond is occupied with probability \(p=c/(z-1)\), and each bond keeps its random draw as you move the sliders. The cluster containing the root is purple.</p>
+    <p>On a tree, \(P_\infty\) is the probability that the root’s cluster reaches the boundary as \(D\to\infty\). “Estimate \(P_\infty\)” runs that experiment on \(10^4\) trees of depth 50, grown as a branching process, and compares with the depth-50 recursion and the \(D\to\infty\) result.</p>
+  </div>
+  <div class="stage">
+    <canvas id="cv-tree" aria-label="A finite Bethe lattice with occupied bonds and the root cluster highlighted"></canvas>
+    <dl class="read" id="tree-read"></dl>
+    <div class="stage-controls">
+      <span class="status" id="tree-status">The boundary of a finite tree holds a large share of its nodes, so a single sample is only suggestive.</span>
+      <div class="stage-buttons">
+        <button class="toggle colors-toggle" aria-pressed="false">Color all components</button>
+        <button id="btn-tree-resample">New sample</button>
+        <button id="btn-tree-mc">Estimate P∞</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 4. Configuration model ================= -->
+<section id="cm">
+  <div class="col">
+    <h2><span class="num">4</span>The configuration model: a recipe for \(S\)</h2>
+    <p>Take a locally tree-like configuration model with degree distribution \(p_k\). For node \(i\) of degree \(k\) to be outside the giant component, <em>none</em> of its \(k\) branches may lead to it. The node at the end of each edge is outside with probability \(u\), and nothing distinguishes one branch from another: they are realized independently. So node \(i\) is outside with probability \(u^k\).</p>
+    <p class="note green">the giant component may be out there, just not connected to node i</p>
+    <p>Averaging over \(p_k\) gives \(1-S=g_0(u)\). The node reached along an edge has \(k\) further edges with the excess degree distribution \(q_k=(k+1)p_{k+1}/\langle k\rangle\), whose generating function is \(g_1\). This gives the recipe:</p>
+    <ol class="recipe">
+      <li>from \(p_k\), calculate \(g_0(u)=\sum_k p_k u^k\);</li>
+      <li>from \(g_0\), calculate \(g_1(u)=g_0'(u)/g_0'(1)\);</li>
+      <li>solve the self-consistency equation <span class="hl cm">\(u=g_1(u)\)</span>;</li>
+      <li>obtain <span class="hl cm">\(S=1-g_0(u)\)</span>.</li>
+    </ol>
+    <p>A nontrivial root \(u&lt;1\) exists when \(g_1\) crosses the diagonal, i.e. when the slope at \(u=1\) (the average branching) exceeds 1:</p>
+    <div class="eq">\[g_1'(1)=\sum_{k}k\,q_k=\frac{\langle k^2\rangle-\langle k\rangle}{\langle k\rangle}&gt;1\iff\langle k^2\rangle-2\langle k\rangle&gt;0.\]</div>
+    <p class="note">for a “walk” to continue, each node needs at least one more edge, on average</p>
+    <p><strong>Erdős–Rényi revisited.</strong> With \(p_k=e^{-c}c^k/k!\), \(g_0(u)=e^{c(u-1)}\), \(g_0'(1)=c\), so \(g_1(u)=g_0(u)\): the excess degree distribution equals the degree distribution, \(q_k=\frac1c(k+1)e^{-c}\frac{c^{k+1}}{(k+1)!}=p_k\). Then \(u=e^{c(u-1)}\) and \(S=1-e^{-cS}\), as in section 1 (see also S.-W. Son <em>et al.</em>, EPL <strong>97</strong>, 16006).</p>
+  </div>
+
+  <div class="ctrl-row">
+    <div class="inline"><span>Degree distribution</span>
+      <div class="seg" role="group" aria-label="Degree distribution">
+        <button id="d-poisson" aria-pressed="true">Poisson</button><button id="d-power" aria-pressed="false">Power law</button>
+      </div></div>
+    <div class="ctrl cm" id="row-cm-c"><label for="c-cm">Mean degree \(c\)</label><input id="c-cm" data-bind="c" type="range" min="0" max="4" step="0.01"><output data-out="c"></output></div>
+    <div class="ctrl cm" id="row-cm-g" hidden><label for="g-cm">Exponent \(\gamma\)</label><input id="g-cm" data-bind="gamma" type="range" min="1.5" max="4.5" step="0.01"><output data-out="gamma"></output></div>
+  </div>
+  <div class="figs">
+    <figure class="panel"><canvas id="cv-gcm"></canvas>
+      <figcaption>Green: \(y=g_1(u)\). Dashed: \(y=u\). Orange staircase: iterating \(u\leftarrow g_1(u)\) from \(u=0\), which climbs to the smallest fixed point, the physical one.</figcaption></figure>
+    <figure class="panel"><canvas id="cv-pk"></canvas>
+      <figcaption>Degree distribution \(p_k\) (bars) and excess degree distribution \(q_k\) (dots), log scale. For Poisson they coincide.</figcaption></figure>
+  </div>
+  <dl class="read" id="cm-read"></dl>
+
+  <div class="col">
+    <h3>A sampled configuration-model network</h3>
+    <p>The theory above assumes \(n\to\infty\). Here is an actual realization for the distribution and parameter you chose: each node draws its degree from \(p_k\) (truncated at \(k=n-1\)), the stubs are paired uniformly at random, and self-loops are discarded. Moving the slider keeps each node’s random draw, so the network changes smoothly. Compare the largest component with \(S\).</p>
+  </div>
+  <div class="stage">
+    <canvas id="cv-cmnet" aria-label="A sampled configuration-model network with its largest component highlighted"></canvas>
+    <dl class="read" id="cmnet-read"></dl>
+    <div class="stage-controls">
+      <span class="status" id="cm-status">Small networks fluctuate; check a larger one for a fair comparison with \(S\).</span>
+      <div class="stage-buttons">
+        <select id="cm-n" aria-label="Number of nodes">
+          <option value="150">n = 150</option><option value="300" selected>n = 300</option><option value="500">n = 500</option>
+        </select>
+        <button class="toggle colors-toggle" aria-pressed="false">Color all components</button>
+        <button id="btn-cm-resample">New sample</button>
+        <button id="btn-cm-check">Check with n = 10⁴</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 5. Power law ================= -->
+<section id="pl">
+  <div class="col">
+    <h2><span class="num">5</span>Power-law degrees</h2>
+    <p>Take the “pure” power law \(p_k=k^{-\gamma}/\zeta(\gamma)\) for \(k\ge1\) and \(p_0=0\), with the Riemann zeta function for normalization. Then</p>
+    <div class="eq">\[g_0(u)=\frac{\mathrm{Li}_\gamma(u)}{\zeta(\gamma)},\qquad g_1(u)=\frac{\mathrm{Li}_{\gamma-1}(u)}{u\,\zeta(\gamma-1)},\qquad u=\frac{1}{\zeta(\gamma-1)}\sum_{k=1}^\infty k^{-(\gamma-1)}u^{k-1}.\]</div>
+    <p>For \(\gamma\le2\), \(\zeta(\gamma-1)\to\infty\), so \(g_1(u)=0\) for every \(u&lt;1\): \(u=0\) is the only solution and \(S=1-g_0(0)=1\). The giant component fills the entire network.</p>
+    <p>For \(2&lt;\gamma\le3\), \(\langle k\rangle\) is finite while \(\langle k^2\rangle\to\infty\), so \(\langle k^2\rangle-2\langle k\rangle&gt;0\) is always satisfied. Above 3 the giant component survives until \(\zeta(\gamma-2)=2\zeta(\gamma-1)\), at \(\gamma_c\approx\) <span id="gc-out">…</span> (solved in your browser).</p>
+    <p class="note">careful: with k<sub>min</sub> = 1, ⟨k⟩ changes with γ, so it’s not quite a “fair” comparison</p>
+  </div>
+  <div class="ctrl-row">
+    <div class="ctrl cm"><label for="g-pl">Exponent \(\gamma\)</label><input id="g-pl" data-bind="gamma" type="range" min="1.5" max="4.5" step="0.01"><output data-out="gamma"></output></div>
+    <div class="inline"><button id="btn-pl-sim">Simulate S(γ) with n = 10⁴</button><span class="status" id="pl-status"></span></div>
+  </div>
+  <div class="figs">
+    <figure class="panel"><canvas id="cv-sg"></canvas>
+      <figcaption>Giant component size against \(\gamma\), as in Newman’s Fig. 12.6. Dotted lines: \(\gamma=2\) and \(\gamma_c\). Pink dots: largest-component fraction in sampled configuration models with \(n=10^4\); the slow decay of finite-size effects near \(\gamma_c\) is visible.</figcaption></figure>
+    <figure class="panel"><canvas id="cv-kg"></canvas>
+      <figcaption>\(\langle k\rangle=\zeta(\gamma-1)/\zeta(\gamma)\): the mean degree itself drops as \(\gamma\) grows.</figcaption></figure>
+  </div>
+  <dl class="read" id="pl-read"></dl>
+
+  <footer>
+    <p>Sources: M. E. J. Newman, <em>Networks</em> (2nd ed.), Secs. 11.5–11.6 and 12.5; K. Christensen and N. R. Moloney, <em>Complexity and Criticality</em>, Table 1.2; S.-W. Son, G. Bizhani, C. Christensen, P. Grassberger and M. Paczuski, EPL <strong>97</strong>, 16006 (2012); Bethe-lattice treatment after Prof. Young-Sul Cho’s lecture; generating-function picture cf. Prof. S.-C. Park’s lecture.</p>
+    <p>Web demo created by Claude Opus 5.5 (Anthropic) from Sang Hoon Lee’s handwritten lecture notes.</p>
+    <p>All curves are computed in your browser: Newton’s method for \(S=1-e^{-cS}\), bisection for the fixed points, Euler–Maclaurin summation for \(\zeta\) and \(\mathrm{Li}_s\), and union–find for the simulations.</p>
+  </footer>
+</section>
+</main>
+
+<script>
+(() => {
+'use strict';
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const lin = (a, b, n) => Array.from({length: n}, (_, i) => a + (b - a) * i / (n - 1));
+const logs = (a, b, n) => lin(Math.log10(a), Math.log10(b), n).map(v => 10 ** v);
+const RM = matchMedia('(prefers-reduced-motion: reduce)');
+const fmt = (v, d = 3) => (v === Infinity ? '∞' : Number.isFinite(v) ? v.toFixed(d) : '—');
+
+// MATH-START
+/* ---------- Erdős–Rényi ---------- */
+function erS(c) {
+  if (c <= 1) return 0;
+  let S = 1;
+  for (let i = 0; i < 200; i++) {
+    const e = Math.exp(-c * S), f = S - 1 + e, fp = 1 - c * e, d = f / fp;
+    S -= d;
+    if (Math.abs(d) < 1e-15) break;
+  }
+  return Math.max(S, 0);
+}
+const erChi = c => 1 / (1 - c + c * erS(c));
+
+/* ---------- Bethe lattice ---------- */
+function bethe(z, p) {
+  if (p <= 1 / (z - 1)) return {A: 0, P: 0};
+  const h = A => 1 - Math.pow(1 - p * A, z - 1) - A;
+  let lo = 1e-13, hi = 1;
+  for (let i = 0; i < 80; i++) { const m = (lo + hi) / 2; if (h(m) > 0) lo = m; else hi = m; }
+  const A = (lo + hi) / 2;
+  return {A, P: 1 - Math.pow(1 - p * A, z)};
+}
+
+/* ---------- polylog / zeta via Euler–Maclaurin ---------- */
+function Li(s, u) {
+  if (u <= 0) return 0;
+  const N = 400;
+  let sum = 0, uk = 1;
+  for (let k = 1; k < N; k++) {
+    uk *= u;
+    sum += uk * Math.pow(k, -s);
+    if (uk < 1e-18) return sum;
+  }
+  uk *= u;
+  const fN = uk * Math.pow(N, -s);
+  if (u >= 1 && s <= 1) return Infinity;
+  const lu = u >= 1 ? 0 : Math.log(u);
+  const fpN = fN * (-s / N + lu);
+  let I;
+  if (u >= 1) I = Math.pow(N, 1 - s) / (s - 1);
+  else {
+    const a = -lu, t0 = Math.log(N);
+    let t1 = Math.log(60 / a) + 1;
+    if (s > 1) t1 = Math.min(t1, t0 + 45 / (s - 1));
+    if (t1 <= t0) I = 0;
+    else {
+      const M = 600, h = (t1 - t0) / M;
+      const g = t => Math.exp((1 - s) * t - a * Math.exp(t));
+      let acc = g(t0) + g(t1);
+      for (let i = 1; i < M; i++) acc += (i % 2 ? 4 : 2) * g(t0 + i * h);
+      I = acc * h / 3;
+    }
+  }
+  return sum + fN / 2 + I - fpN / 12;
+}
+const zeta = s => (s <= 1 ? Infinity : Li(s, 1));
+
+function solveU(g1) {
+  const d = 1e-7;
+  if (g1(1 - d) >= 1 - d) return 1;
+  if (g1(0) <= 0) return 0;
+  let lo = 0, hi = 1 - d;
+  for (let i = 0; i < 64; i++) { const m = (lo + hi) / 2; if (g1(m) > m) lo = m; else hi = m; }
+  return (lo + hi) / 2;
+}
+
+const plCache = new Map();
+function powerModel(gam) {
+  const key = gam.toFixed(4);
+  if (plCache.has(key)) return plCache.get(key);
+  const zg = zeta(gam), zg1 = gam > 2 ? zeta(gam - 1) : Infinity, zg2 = gam > 3 ? zeta(gam - 2) : Infinity;
+  const g0 = u => (u >= 1 ? 1 : Li(gam, u) / zg);
+  const g1 = u => {
+    if (u >= 1) return 1;
+    if (!Number.isFinite(zg1)) return 0;
+    if (u < 1e-9) return 1 / zg1;
+    return Li(gam - 1, u) / (u * zg1);
+  };
+  const u = solveU(g1);
+  const m = {kind: 'power', gam, g0, g1, u, S: 1 - g0(u), kmean: zg1 / zg,
+    branch: Number.isFinite(zg2) ? (zg2 - zg1) / zg1 : Infinity,
+    pk: k => (k >= 1 ? Math.pow(k, -gam) / zg : 0)};
+  m.qk = k => (Number.isFinite(m.kmean) ? (k + 1) * m.pk(k + 1) / m.kmean : NaN);
+  plCache.set(key, m);
+  return m;
+}
+function poissonModel(c) {
+  const g = u => Math.exp(c * (u - 1));
+  let lf = 0;
+  const pk = k => { let l = -c + k * Math.log(Math.max(c, 1e-300)); for (let i = 2; i <= k; i++) l -= Math.log(i); return c === 0 ? (k === 0 ? 1 : 0) : Math.exp(l); };
+  return {kind: 'poisson', c, g0: g, g1: g, u: 1 - erS(c), S: erS(c), kmean: c, branch: c, pk, qk: pk};
+}
+function gammaCrit() {
+  let lo = 3.02, hi = 4;
+  for (let i = 0; i < 50; i++) { const m = (lo + hi) / 2; if (zeta(m - 2) - 2 * zeta(m - 1) > 0) lo = m; else hi = m; }
+  return (lo + hi) / 2;
+}
+
+/* ---------- G(n,p) sampling ---------- */
+function makeDSU(n) {
+  const parent = new Int32Array(n), size = new Int32Array(n).fill(1);
+  for (let i = 0; i < n; i++) parent[i] = i;
+  const find = x => { while (parent[x] !== x) { parent[x] = parent[parent[x]]; x = parent[x]; } return x; };
+  const union = (a, b) => { a = find(a); b = find(b); if (a === b) return; if (size[a] < size[b]) [a, b] = [b, a]; parent[b] = a; size[a] += size[b]; };
+  return {parent, size, find, union};
+}
+function compStats(dsu, n) {
+  let max = 0, sumS = 0, sumS2 = 0;
+  for (let i = 0; i < n; i++) if (dsu.parent[i] === i) {
+    const s = dsu.size[i]; sumS += s; sumS2 += s * s; if (s > max) max = s;
+  }
+  const rest = sumS - max;
+  return {S: max / n, chi: rest > 0 ? (sumS2 - max * max) / rest : NaN, max};
+}
+function sampleER(n, c) {
+  const dsu = makeDSU(n), p = c / (n - 1);
+  if (p > 0) {
+    const lp = Math.log(1 - p);
+    let v = 1, w = -1;
+    while (v < n) {
+      w += 1 + Math.floor(Math.log(1 - Math.random()) / lp);
+      while (w >= v && v < n) { w -= v; v++; }
+      if (v < n) dsu.union(v, w);
+    }
+  }
+  return compStats(dsu, n);
+}
+// MATH-END
+
+/* ---------- plotting ---------- */
+let C = {};
+function readColors() {
+  const s = getComputedStyle(document.documentElement), g = n => s.getPropertyValue(n).trim();
+  C = {ink: g('--ink'), muted: g('--muted'), rule: g('--rule'), giant: g('--giant'), crit: g('--crit'),
+       cm: g('--cm'), note: g('--note'), purple: g('--purple'), panel: g('--panel'),
+       dark: document.documentElement.dataset.theme ? document.documentElement.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches};
+}
+const SUP = {'-': '⁻', '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹'};
+function niceStep(span) {
+  const raw = span / 5, p = 10 ** Math.floor(Math.log10(raw)), f = raw / p;
+  return (f < 1.5 ? 1 : f < 3.5 ? 2 : f < 7.5 ? 5 : 10) * p;
+}
+function ticks(r, log) {
+  if (log) {
+    const a = Math.ceil(Math.log10(r[0]) - 1e-9), b = Math.floor(Math.log10(r[1]) + 1e-9), t = [];
+    for (let e = a; e <= b; e++) t.push({v: 10 ** e, s: e === 0 ? '1' : e === 1 ? '10' : '10' + String(e).split('').map(ch => SUP[ch]).join('')});
+    return t;
+  }
+  const st = niceStep(r[1] - r[0]), t = [];
+  for (let v = Math.ceil(r[0] / st - 1e-9) * st; v <= r[1] + 1e-9; v += st) t.push({v, s: String(Number(v.toPrecision(6)))});
+  return t;
+}
+function setupCanvas(cv) {
+  const r = cv.getBoundingClientRect();
+  if (!r.width) return null;
+  const d = window.devicePixelRatio || 1, W = r.width, H = r.height;
+  if (cv.width !== Math.round(W * d) || cv.height !== Math.round(H * d)) { cv.width = Math.round(W * d); cv.height = Math.round(H * d); }
+  const ctx = cv.getContext('2d');
+  ctx.setTransform(d, 0, 0, d, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+  return {ctx, W, H};
+}
+function plot(cv, o) {
+  const s = setupCanvas(cv); if (!s) return;
+  const {ctx, W, H} = s;
+  const m = {l: 50, r: 12, t: 12, b: 38}, pw = W - m.l - m.r, ph = H - m.t - m.b;
+  const L = Math.log10;
+  const X = o.xlog ? v => m.l + (L(v) - L(o.x[0])) / (L(o.x[1]) - L(o.x[0])) * pw : v => m.l + (v - o.x[0]) / (o.x[1] - o.x[0]) * pw;
+  const Y = o.ylog ? v => m.t + ph - (L(v) - L(o.y[0])) / (L(o.y[1]) - L(o.y[0])) * ph : v => m.t + ph - (v - o.y[0]) / (o.y[1] - o.y[0]) * ph;
+  ctx.font = "12px 'IBM Plex Sans', system-ui, sans-serif";
+  ctx.lineWidth = 1;
+  ctx.fillStyle = C.muted;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  for (const t of ticks(o.x, o.xlog)) {
+    const x = X(t.v);
+    ctx.strokeStyle = C.rule; ctx.beginPath(); ctx.moveTo(x, m.t); ctx.lineTo(x, m.t + ph); ctx.stroke();
+    ctx.fillText(t.s, x, m.t + ph + 6);
+  }
+  ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  for (const t of ticks(o.y, o.ylog)) {
+    const y = Y(t.v);
+    ctx.strokeStyle = C.rule; ctx.beginPath(); ctx.moveTo(m.l, y); ctx.lineTo(m.l + pw, y); ctx.stroke();
+    ctx.fillText(t.s, m.l - 7, y);
+  }
+  ctx.strokeStyle = C.muted;
+  ctx.beginPath(); ctx.moveTo(m.l, m.t); ctx.lineTo(m.l, m.t + ph); ctx.lineTo(m.l + pw, m.t + ph); ctx.stroke();
+
+  ctx.save(); ctx.beginPath(); ctx.rect(m.l, m.t - 2, pw + 2, ph + 4); ctx.clip();
+  for (const v of o.vlines || []) {
+    ctx.strokeStyle = v.color; ctx.lineWidth = v.width || 1; ctx.setLineDash(v.dash || [3, 4]);
+    ctx.beginPath(); ctx.moveTo(X(v.x), m.t); ctx.lineTo(X(v.x), m.t + ph); ctx.stroke();
+  }
+  for (const b of o.bars || []) {
+    ctx.fillStyle = b.color; ctx.globalAlpha = b.alpha ?? 0.5;
+    const y0 = Y(o.ylog ? o.y[0] : 0), y1 = Y(b.y);
+    if (Number.isFinite(y1)) ctx.fillRect(X(b.x) - b.w / 2, Math.min(y0, y1), b.w, Math.abs(y0 - y1));
+  }
+  ctx.globalAlpha = 1;
+  for (const ln of o.lines || []) {
+    ctx.strokeStyle = ln.color; ctx.lineWidth = ln.width || 2; ctx.setLineDash(ln.dash || []);
+    ctx.globalAlpha = ln.alpha ?? 1; ctx.lineJoin = 'round';
+    ctx.beginPath(); let pen = false;
+    for (const [x, y] of ln.pts) {
+      if (!Number.isFinite(x) || !Number.isFinite(y) || (o.ylog && y <= 0) || (o.xlog && x <= 0)) { pen = false; continue; }
+      const px = X(x), py = Math.max(-5000, Math.min(5000, Y(y)));
+      if (pen) ctx.lineTo(px, py); else ctx.moveTo(px, py);
+      pen = true;
+    }
+    ctx.stroke();
+  }
+  ctx.setLineDash([]); ctx.globalAlpha = 1;
+  for (const d of o.dots || []) {
+    if (!Number.isFinite(d.x) || !Number.isFinite(d.y)) continue;
+    ctx.beginPath(); ctx.arc(X(d.x), Y(d.y), d.r || 3.5, 0, 2 * Math.PI);
+    if (d.hollow) { ctx.fillStyle = C.panel; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = d.color; ctx.stroke(); }
+    else { ctx.fillStyle = d.color; ctx.globalAlpha = d.alpha ?? 1; ctx.fill(); ctx.globalAlpha = 1; }
+  }
+  ctx.restore();
+  for (const t of o.notes || []) {
+    ctx.font = "italic 15px 'Source Serif 4', Georgia, serif";
+    ctx.fillStyle = t.color; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    const w = ctx.measureText(t.text).width;
+    let px = X(t.x);
+    if (t.align === 'right') px -= w; else if (t.align === 'center') px -= w / 2;
+    px = Math.max(m.l + 6, Math.min(px, m.l + pw - 6 - w));      // keep the label inside the plot area
+    const py = Math.max(m.t + 10, Math.min(Y(t.y), m.t + ph - 10));
+    ctx.fillText(t.text, px, py);
+  }
+  ctx.font = "13px 'IBM Plex Sans', system-ui, sans-serif";
+  ctx.fillStyle = C.ink; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+  if (o.xlabel) ctx.fillText(o.xlabel, m.l + pw / 2, H - 1);
+  if (o.ylabel) { ctx.save(); ctx.translate(13, m.t + ph / 2); ctx.rotate(-Math.PI / 2); ctx.textBaseline = 'middle'; ctx.fillText(o.ylabel, 0, 0); ctx.restore(); }
+}
+function setRead(el, rows) {
+  el.innerHTML = rows.map(([k, v, t]) => `<div><dt>${k}</dt><dd>${v}${t ? ` <span class="theory">${t}</span>` : ''}</dd></div>`).join('');
+}
+
+/* ---------- state ---------- */
+const st = {c: 1.5, z: 4, gamma: 2.5, dist: 'poisson', sim: [], simN: null};
+
+/* ---------- reusable network view ---------- */
+function mulberry32(seed) {
+  return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+}
+function compColor(rank) {
+  // spread hues by the golden angle, skipping the blue (175–225°) and purple (255–300°) used for highlighted clusters
+  let h = (28 + rank * 137.508) % 265;
+  if (h > 175) h += 50;
+  if (h > 255) h += 45;
+  return C.dark ? `hsl(${h.toFixed(0)} 65% 66%)` : `hsl(${h.toFixed(0)} 60% 42%)`;
+}
+class GraphView {
+  constructor(cv) { this.cv = cv; this.n = 0; this.m = 0; this.alpha = 0; this.running = false;
+    this.a = new Int32Array(0); this.b = new Int32Array(0); this.frame = this.frame.bind(this); }
+  setN(n, keepPos) {
+    this.n = n;
+    if (keepPos && this.x && this.x.length === n) return;
+    this.x = new Float64Array(n); this.y = new Float64Array(n);
+    for (let i = 0; i < n; i++) { const r = 0.9 * Math.sqrt(Math.random()), t = 2 * Math.PI * Math.random(); this.x[i] = r * Math.cos(t); this.y[i] = r * Math.sin(t); }
+    this.vx = new Float64Array(n); this.vy = new Float64Array(n); this.fx = new Float64Array(n); this.fy = new Float64Array(n);
+  }
+  setEdges(a, b, m) {
+    this.a = a; this.b = b; this.m = m;
+    const n = this.n, dsu = makeDSU(n);
+    for (let k = 0; k < m; k++) dsu.union(a[k], b[k]);
+    const root = new Int32Array(n);
+    for (let i = 0; i < n; i++) root[i] = dsu.find(i);
+    const roots = [];
+    for (let i = 0; i < n; i++) if (dsu.parent[i] === i) roots.push(i);
+    roots.sort((p, q) => dsu.size[q] - dsu.size[p]);
+    const rankOfRoot = new Int32Array(n).fill(-1);
+    roots.forEach((r, k) => { rankOfRoot[r] = dsu.size[r] > 1 || k === 0 ? k : -1; });
+    this.rank = Int32Array.from(root, r => rankOfRoot[r]);   // 0 = largest, -1 = isolated node
+    this.ncomp = roots.length;
+    this.nnontriv = roots.filter(r => dsu.size[r] > 1).length;
+    const s = compStats(dsu, n); this.S = s.S; this.chi = s.chi;
+  }
+  tick() {
+    const {n, x, y, vx, vy, fx, fy, a, b, m} = this;
+    const R = 0.9, g = 0.03, kr = g * R * R / n, L = 0.7 * R / Math.sqrt(n), ks = 0.06, al = this.alpha;
+    fx.fill(0); fy.fill(0);
+    for (let i = 0; i < n; i++) {
+      const xi = x[i], yi = y[i];
+      for (let j = i + 1; j < n; j++) {
+        const dx = xi - x[j], dy = yi - y[j], f = kr / (dx * dx + dy * dy + 1e-5);
+        fx[i] += dx * f; fy[i] += dy * f; fx[j] -= dx * f; fy[j] -= dy * f;
+      }
+    }
+    for (let k = 0; k < m; k++) {
+      const i = a[k], j = b[k], dx = x[j] - x[i], dy = y[j] - y[i], d = Math.sqrt(dx * dx + dy * dy) + 1e-9, f = ks * (d - L) / d;
+      fx[i] += dx * f; fy[i] += dy * f; fx[j] -= dx * f; fy[j] -= dy * f;
+    }
+    for (let i = 0; i < n; i++) {
+      let ux = (vx[i] + (fx[i] - g * x[i]) * al) * 0.55, uy = (vy[i] + (fy[i] - g * y[i]) * al) * 0.55;
+      const sp = Math.hypot(ux, uy);
+      if (sp > 0.03) { ux *= 0.03 / sp; uy *= 0.03 / sp; }
+      vx[i] = ux; vy[i] = uy; x[i] += ux; y[i] += uy;
+    }
+    this.alpha *= 0.992;
+  }
+  relax(steps) { this.alpha = 1; for (let i = 0; i < steps; i++) this.tick(); }
+  draw() {
+    const s = setupCanvas(this.cv); if (!s || !this.rank) return;
+    const {ctx, W, H} = s, {n, x, y, a, b, m, rank} = this;
+    const sx = W / 2 - 12, sy = H / 2 - 12, X = i => W / 2 + x[i] * sx, Y = i => H / 2 + y[i] * sy;
+    const colorOf = rk => (rk === 0 ? C.giant : rk < 0 || !st.colorAll ? C.muted : compColor(rk));
+    const r = n > 400 ? 2.2 : 2.8;
+    // edges, grouped by color
+    const groups = new Map();
+    for (let k = 0; k < m; k++) { const col = colorOf(rank[a[k]]); if (!groups.has(col)) groups.set(col, []); groups.get(col).push(k); }
+    for (const [col, ks] of groups) {
+      const isG = col === C.giant, isMuted = col === C.muted;
+      ctx.strokeStyle = col; ctx.globalAlpha = isMuted ? 0.4 : isG ? 0.55 : 0.8; ctx.lineWidth = isMuted ? 1 : 1.3;
+      ctx.beginPath();
+      for (const k of ks) { ctx.moveTo(X(a[k]), Y(a[k])); ctx.lineTo(X(b[k]), Y(b[k])); }
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+    const ng = new Map();
+    for (let i = 0; i < n; i++) { const col = colorOf(rank[i]); if (!ng.has(col)) ng.set(col, []); ng.get(col).push(i); }
+    for (const [col, is] of ng) {
+      const rr = col === C.muted ? r : r + .6;
+      ctx.fillStyle = col; ctx.beginPath();
+      for (const i of is) { ctx.moveTo(X(i) + rr, Y(i)); ctx.arc(X(i), Y(i), rr, 0, 2 * Math.PI); }
+      ctx.fill();
+    }
+  }
+  frame() { this.tick(); this.tick(); this.draw(); if (this.alpha > 0.01) requestAnimationFrame(this.frame); else this.running = false; }
+  kick() {
+    if (RM.matches) { this.alpha = 0.3; for (let i = 0; i < 40; i++) this.tick(); this.draw(); return; }
+    this.alpha = Math.max(this.alpha, 0.3);
+    if (!this.running) { this.running = true; requestAnimationFrame(this.frame); }
+  }
+}
+
+/* ---------- hero: G(n,p) with a fixed edge order ---------- */
+const CMAX = 4;
+const net = new GraphView(document.getElementById('cv-net'));
+net.n = 300;
+function netGenerate(keepPos) {
+  const n = net.n, pmax = CMAX / (n - 1), lp = Math.log(1 - pmax);
+  const A = [], B = [], R = [];
+  let v = 1, w = -1;
+  while (v < n) {
+    w += 1 + Math.floor(Math.log(1 - Math.random()) / lp);
+    while (w >= v && v < n) { w -= v; v++; }
+    if (v < n) { A.push(v); B.push(w); R.push(Math.random() * pmax); }
+  }
+  const idx = A.map((_, i) => i).sort((i, j) => R[i] - R[j]);
+  net.ea = Int32Array.from(idx, i => A[i]); net.eb = Int32Array.from(idx, i => B[i]); net.r = Float64Array.from(idx, i => R[i]);
+  net.setN(n, keepPos);
+}
+function netUpdate() {
+  const p = st.c / (net.n - 1);
+  let lo = 0, hi = net.r.length;
+  while (lo < hi) { const mid = (lo + hi) >> 1; if (net.r[mid] < p) lo = mid + 1; else hi = mid; }
+  net.setEdges(net.ea, net.eb, lo);
+}
+function netRead() {
+  setRead($('#net-read'), [
+    ['edges', `${net.m}`, `(mean degree ${(2 * net.m / net.n).toFixed(2)})`],
+    ['largest component', `${fmt(net.S)} n`, `theory S = ${fmt(erS(st.c))}`],
+    ['mean size of the rest', fmt(net.chi, 2), `theory ⟨s⟩ = ${Math.abs(st.c - 1) < 0.005 ? '∞' : fmt(erChi(st.c), 2)}`],
+    ['components', `${net.ncomp}`, `(${net.nnontriv} with ≥ 2 nodes)`]
+  ]);
+}
+const drawNet = () => net.draw();
+const kick = () => net.kick();
+
+/* ---------- configuration model: stub matching ---------- */
+const cdfCache = new Map();
+function degreeCDF(n) {
+  // cumulative distribution of p_k for the current model, truncated at k = n − 1
+  const key = st.dist === 'poisson' ? `p${st.c}|${n}` : `g${st.gamma}|${n}`;
+  if (cdfCache.has(key)) return cdfCache.get(key);
+  const kmax = n - 1, cdf = new Float64Array(kmax + 1);
+  let acc = 0;
+  if (st.dist === 'poisson') {
+    let pk = Math.exp(-st.c);
+    for (let k = 0; k <= kmax; k++) { if (k > 0) pk *= st.c / k; acc += pk; cdf[k] = acc; }
+  } else {
+    for (let k = 1; k <= kmax; k++) { acc += Math.pow(k, -st.gamma); cdf[k] = acc; }
+  }
+  for (let k = 0; k <= kmax; k++) cdf[k] /= acc;
+  if (cdfCache.size > 60) cdfCache.clear();
+  cdfCache.set(key, cdf);
+  return cdf;
+}
+function invCDF(cdf, U) { let lo = 0, hi = cdf.length - 1; while (lo < hi) { const m = (lo + hi) >> 1; if (cdf[m] < U) lo = m + 1; else hi = m; } return lo; }
+function configModel(n, U, rng) {
+  // U: per-node uniforms (fixed per sample so degrees change smoothly with c or γ)
+  const cdf = degreeCDF(n), deg = new Int32Array(n);
+  let K = 0, kmax = 0;
+  for (let i = 0; i < n; i++) { deg[i] = invCDF(cdf, U[i]); K += deg[i]; if (deg[i] > kmax) kmax = deg[i]; }
+  const stubs = new Int32Array(K);
+  for (let i = 0, t = 0; i < n; i++) for (let d = 0; d < deg[i]; d++) stubs[t++] = i;
+  for (let i = K - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); const tmp = stubs[i]; stubs[i] = stubs[j]; stubs[j] = tmp; }
+  const A = [], B = [];
+  let loops = 0;
+  for (let t = 0; t + 1 < K; t += 2) { if (stubs[t] === stubs[t + 1]) { loops++; continue; } A.push(stubs[t]); B.push(stubs[t + 1]); }
+  return {a: Int32Array.from(A), b: Int32Array.from(B), K, kmax, loops, odd: K % 2};
+}
+function cmLargest(n) {
+  const U = new Float64Array(n); for (let i = 0; i < n; i++) U[i] = Math.random();
+  const g = configModel(n, U, Math.random), dsu = makeDSU(n);
+  for (let k = 0; k < g.a.length; k++) dsu.union(g.a[k], g.b[k]);
+  return compStats(dsu, n).S;
+}
+const cmv = new GraphView(document.getElementById('cv-cmnet'));
+cmv.n = 300;
+let cmU = null, cmSeed = 1, cmInfo = null;
+function cmResample(keepPos) {
+  cmU = new Float64Array(cmv.n); for (let i = 0; i < cmv.n; i++) cmU[i] = Math.random();
+  cmSeed = (Math.random() * 2 ** 31) | 0;
+  cmv.setN(cmv.n, keepPos);
+}
+function cmUpdate() {
+  cmInfo = configModel(cmv.n, cmU, mulberry32(cmSeed));
+  cmv.setEdges(cmInfo.a, cmInfo.b, cmInfo.a.length);
+  cmRead();
+  cmv.kick();
+}
+function cmRead() {
+  const M = model();
+  setRead($('#cmnet-read'), [
+    ['largest component', `${fmt(cmv.S)} n`, `theory S = ${fmt(M.S)}`],
+    ['mean degree', (cmInfo.K / cmv.n).toFixed(2), `theory ⟨k⟩ = ${fmt(M.kmean, 2)}`],
+    ['max degree', `${cmInfo.kmax}`],
+    ['self-loops dropped', `${cmInfo.loops}`],
+    ['components', `${cmv.ncomp}`, `(${cmv.nnontriv} with ≥ 2 nodes)`]
+  ].concat(st.cmCheck && st.cmCheck.key === cmKey() ? [['n = 10⁴ average', fmt(st.cmCheck.S), `(${st.cmCheck.R} samples)`]] : []));
+}
+const cmKey = () => (st.dist === 'poisson' ? `p${st.c}` : `g${st.gamma}`);
+
+/* ---------- section draws ---------- */
+function drawER() {
+  const c = st.c, S = erS(c);
+  const curve = cc => lin(0, 1, 160).map(s => [s, 1 - Math.exp(-cc * s)]);
+  plot($('#cv-ger'), {x: [0, 1], y: [0, 1], xlabel: 'S', ylabel: 'y',
+    lines: [{pts: [[0, 0], [1, 1]], color: C.muted, dash: [5, 4], width: 1.3},
+      ...[0.5, 1, 1.5].map(cc => ({pts: curve(cc), color: C.muted, width: 1.2, alpha: .45})),
+      {pts: curve(c), color: C.giant, width: 2.6}],
+    vlines: S > 0 ? [{x: S, color: C.giant}] : [],
+    dots: [{x: S, y: S, color: C.giant, r: 5, hollow: S === 0}],
+    notes: S > 0 ? [{x: S > 0.5 ? S - 0.02 : 1, y: .07, align: 'right', text: `a nontrivial solution exists: S = ${S.toFixed(3)}`, color: C.giant}]
+                 : [{x: 1, y: .07, align: 'right', text: 'only the trivial solution S = 0', color: C.crit}]});
+  const cs = [...lin(0, 1, 40), ...lin(1, 1.3, 120), ...lin(1.3, 4, 120)];
+  plot($('#cv-ser'), {x: [0, 4], y: [0, 1], xlabel: 'average degree c', ylabel: 'S',
+    vlines: [{x: c, color: C.giant}],
+    lines: [{pts: cs.map(cc => [cc, erS(cc)]), color: C.ink, width: 2}],
+    dots: [...st.sim.map(d => ({x: d.c, y: d.S, color: C.crit, r: 3.5, alpha: .85})),
+      {x: c, y: S, color: C.giant, r: 5}, {x: c, y: net.S, color: C.giant, r: 5, hollow: true}]});
+  setRead($('#er-read'), [['c', fmt(c, 2)], ['S', fmt(S, 4)], ['u = 1 − S', fmt(1 - S, 4)],
+    ['regime', c > 1 ? 'giant component' : c < 1 ? 'no giant component' : 'critical point']]
+    .concat(st.simN ? [['dots', `n = ${st.simN}`]] : []));
+}
+function drawCrit() {
+  const c = st.c;
+  const cs = [...lin(0, .995, 200), ...lin(1.005, 3, 300)];
+  plot($('#cv-chi'), {x: [0, 3], y: [0, 8], xlabel: 'mean degree c', ylabel: '⟨s⟩',
+    vlines: [{x: 1, color: C.muted}, {x: c, color: C.giant, dash: []}],
+    lines: [{pts: cs.filter(x => x < 1).map(x => [x, erChi(x)]), color: C.crit, width: 2.2},
+            {pts: cs.filter(x => x > 1).map(x => [x, erChi(x)]), color: C.giant, width: 2.2}],
+    dots: st.sim.map(d => ({x: d.c, y: d.chi, color: C.ink, r: 3.3, alpha: .7}))});
+  const eps = logs(1e-3, 1, 160);
+  plot($('#cv-llS'), {x: [1e-3, 1], y: [1e-3, 1], xlog: true, ylog: true, xlabel: 'c − 1', ylabel: 'S',
+    lines: [{pts: eps.map(e => [e, 2 * e]), color: C.muted, dash: [5, 4], width: 1.4},
+            {pts: eps.map(e => [e, erS(1 + e)]), color: C.crit, width: 2.4}],
+    notes: [{x: 2e-3, y: 0.25, text: 'β = 1', color: C.crit}]});
+  plot($('#cv-llchi'), {x: [1e-3, 1], y: [0.5, 2000], xlog: true, ylog: true, xlabel: '|c − 1|', ylabel: '⟨s⟩',
+    lines: [{pts: eps.map(e => [e, erChi(1 - e)]), color: C.crit, width: 2.4},
+            {pts: eps.map(e => [e, erChi(1 + e)]), color: C.giant, width: 2.4, dash: [7, 4]}],
+    notes: [{x: 0.03, y: 300, text: 'γ = 1', color: C.crit}]});
+}
+function effTable() {
+  const es = [1e-1, 1e-2, 1e-3, 1e-4];
+  const bE = e => Math.log(erS(1 + 1.01 * e) / erS(1 + e)) / Math.log(1.01);
+  const gA = e => -Math.log(erChi(1 + 1.01 * e) / erChi(1 + e)) / Math.log(1.01);
+  const gB = e => -Math.log(erChi(1 - 1.01 * e) / erChi(1 - e)) / Math.log(1.01);
+  $('#eff-table').innerHTML =
+    `<thead><tr><th>|c − 1|</th>${es.map(e => `<th>${e}</th>`).join('')}</tr></thead><tbody>
+     <tr><td>β<sub>eff</sub></td>${es.map(e => `<td>${bE(e).toFixed(4)}</td>`).join('')}</tr>
+     <tr><td>γ<sub>eff</sub> (c &lt; 1)</td>${es.map(e => `<td>${gB(e).toFixed(4)}</td>`).join('')}</tr>
+     <tr><td>γ<sub>eff</sub> (c &gt; 1)</td>${es.map(e => `<td>${gA(e).toFixed(4)}</td>`).join('')}</tr></tbody>`;
+}
+/* ---------- sampled Bethe lattice (finite Cayley tree) ---------- */
+const tree = {z: null};
+function treeBuild() {
+  const z = st.z, N = d => 1 + z * ((z - 1) ** d - 1) / (z - 2);
+  let D = 1;
+  while (D < 12 && (N(D + 1) <= 480 || (D < 2 && N(2) <= 1700))) D++;
+  const par = [-1], dep = [0], lo = [0], hi = [2 * Math.PI];
+  for (let i = 0; i < par.length; i++) {
+    if (dep[i] === D) continue;
+    const k = i === 0 ? z : z - 1, w = (hi[i] - lo[i]) / k;
+    for (let j = 0; j < k; j++) { par.push(i); dep.push(dep[i] + 1); lo.push(lo[i] + j * w); hi.push(lo[i] + (j + 1) * w); }
+  }
+  const n = par.length;
+  Object.assign(tree, {z, D, n, par: Int32Array.from(par), dep: Int32Array.from(dep),
+    th: Float64Array.from(lo, (l, i) => (l + hi[i]) / 2), r: Float64Array.from({length: n - 1}, Math.random)});
+}
+function treeUpdate() {
+  const {n, par, dep, D, r} = tree, p = Math.min(1, st.c / (st.z - 1)), dsu = makeDSU(n);
+  let occ = 0;
+  for (let k = 1; k < n; k++) if (r[k - 1] < p) { dsu.union(k, par[k]); occ++; }
+  const root = new Int32Array(n);
+  for (let i = 0; i < n; i++) root[i] = dsu.find(i);
+  const R0 = root[0];
+  const others = [];
+  for (let i = 0; i < n; i++) if (dsu.parent[i] === i && i !== R0 && dsu.size[i] > 1) others.push(i);
+  others.sort((a, b) => dsu.size[b] - dsu.size[a]);
+  const rk = new Map(others.map((x, k) => [x, k + 1]));
+  tree.cls = Int32Array.from(root, x => (x === R0 ? 0 : rk.get(x) ?? -1));   // 0 = root cluster, -1 = isolated
+  tree.p = p; tree.occ = occ; tree.rootSize = dsu.size[R0];
+  tree.reach = false;
+  for (let i = 0; i < n; i++) if (dep[i] === D && root[i] === R0) { tree.reach = true; break; }
+  // exact probability that the root reaches generation d, by the finite-depth recursion
+  const reachProb = d => { let A = 1; for (let g = 1; g < d; g++) A = 1 - (1 - p * A) ** (st.z - 1); return 1 - (1 - p * A) ** st.z; };
+  tree.PD = reachProb(D); tree.P50 = reachProb(50);
+  setRead($('#tree-read'), [
+    ['z', `${st.z}`], ['generations D', `${D}`, `(${n} nodes)`], ['p', fmt(p, 3)],
+    ['occupied bonds', `${occ} / ${n - 1}`], ['root cluster', `${tree.rootSize} nodes`],
+    ['reaches generation D', tree.reach ? 'yes' : 'no', `probability ${fmt(tree.PD)}`],
+    ['P∞ (D → ∞)', fmt(bethe(st.z, p).P)]
+  ].concat(st.treeMC && st.treeMC.key === `${st.z}|${st.c}` ? [['estimate, depth 50', fmt(st.treeMC.P), `exact ${fmt(tree.P50)}`]] : []));
+}
+function drawTree() {
+  if (!tree.cls) return;
+  const s = setupCanvas($('#cv-tree')); if (!s) return;
+  const {ctx, W, H} = s, {n, par, dep, th, r, D, cls, p} = tree;
+  const Rr = Math.min(W, H) / 2 - 14;
+  const X = i => W / 2 + dep[i] / D * Rr * Math.cos(th[i]), Y = i => H / 2 + dep[i] / D * Rr * Math.sin(th[i]);
+  const colorOf = c => (c === 0 ? C.purple : c < 0 || !st.colorAll ? C.muted : compColor(c));
+  ctx.strokeStyle = C.rule; ctx.lineWidth = 1; ctx.beginPath();
+  for (let k = 1; k < n; k++) if (!(r[k - 1] < p)) { ctx.moveTo(X(k), Y(k)); ctx.lineTo(X(par[k]), Y(par[k])); }
+  ctx.stroke();
+  for (let k = 1; k < n; k++) if (r[k - 1] < p) {
+    const col = colorOf(cls[k]);
+    ctx.strokeStyle = col; ctx.lineWidth = cls[k] === 0 ? 2 : 1.4; ctx.globalAlpha = col === C.muted ? .6 : .9;
+    ctx.beginPath(); ctx.moveTo(X(k), Y(k)); ctx.lineTo(X(par[k]), Y(par[k])); ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+  const rad = n > 800 ? 1.4 : n > 300 ? 2.2 : 3;
+  for (let i = 0; i < n; i++) {
+    ctx.fillStyle = colorOf(cls[i]); ctx.beginPath(); ctx.arc(X(i), Y(i), cls[i] === 0 ? rad + .6 : rad, 0, 2 * Math.PI); ctx.fill();
+  }
+  ctx.strokeStyle = C.purple; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(W / 2, H / 2, rad + 5, 0, 2 * Math.PI); ctx.stroke();
+}
+function gauss() { let u = 0, v = 0; while (u === 0) u = Math.random(); while (v === 0) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
+function binom(n, p) {
+  if (p <= 0 || n === 0) return 0;
+  if (p >= 1) return n;
+  if (n * p < 30) { let k = 0, i = -1; const lq = Math.log(1 - p); for (;;) { i += 1 + Math.floor(Math.log(1 - Math.random()) / lq); if (i >= n) return k; k++; } }
+  return Math.max(0, Math.min(n, Math.round(n * p + Math.sqrt(n * p * (1 - p)) * gauss())));
+}
+function rootReaches(z, p, depth) {
+  let a = binom(z, p);
+  for (let d = 2; d <= depth; d++) { if (a === 0) return false; if (a > 1e5) return true; a = binom(a * (z - 1), p); }
+  return a > 0;
+}
+
+function drawBethe() {
+  const z = st.z, c = st.c, cmax = Math.min(4, z - 1);
+  const cs = [...lin(0, 1, 30), ...lin(1, Math.min(1.4, cmax), 120), ...lin(Math.min(1.4, cmax), cmax, 120)];
+  const curveC = zz => cs.filter(x => x <= zz - 1).map(x => [x, bethe(zz, x / (zz - 1)).P]);
+  const ercs = [...lin(0, 1, 30), ...lin(1, 4, 240)];
+  plot($('#cv-bethe'), {x: [0, 4], y: [0, 1], xlabel: 'c = p(z − 1)', ylabel: 'P∞',
+    vlines: [{x: c, color: C.purple}],
+    lines: [{pts: ercs.map(x => [x, erS(x)]), color: C.ink, dash: [5, 4], width: 1.5},
+            ...(z !== 3 ? [{pts: curveC(3), color: C.purple, width: 1.3, alpha: .35}] : []),
+            {pts: curveC(z), color: C.purple, width: 2.6}],
+    dots: c <= z - 1 ? [{x: c, y: bethe(z, c / (z - 1)).P, color: C.purple, r: 5}] : []});
+  const pc = 1 / (z - 1), ps = [...lin(0, pc, 20), ...lin(pc, Math.min(1, pc * 1.6), 120), ...lin(Math.min(1, pc * 1.6), 1, 120)];
+  const p = c / (z - 1);
+  plot($('#cv-bethe-p'), {x: [0, 1], y: [0, 1], xlabel: 'bond probability p', ylabel: 'P∞',
+    vlines: [{x: pc, color: C.crit}],
+    lines: [{pts: ps.map(q => [q, bethe(z, q).P]), color: C.purple, width: 2.6},
+            ...(z === 3 ? [] : [{pts: ps.map(q => [q, bethe(3, q).P]), color: C.purple, width: 1.3, alpha: .35}])],
+    dots: p <= 1 ? [{x: p, y: bethe(z, p).P, color: C.purple, r: 5}] : [],
+    notes: [{x: Math.min(pc + .02, .8), y: .9, text: `p_c = 1/${z - 1}`, color: C.crit}]});
+  const r = bethe(z, Math.min(p, 1));
+  const rows = [['z', `${z}`], ['p_c = 1/(z − 1)', fmt(pc, 4)], ['p = c/(z − 1)', p <= 1 ? fmt(p, 4) : '> 1 (outside range)'],
+    ['A', fmt(r.A, 4)], ['P∞', fmt(r.P, 4)]];
+  if (z === 3 && p >= .5 && p <= 1) rows.push(['closed form 1 − ((1−p)/p)³', fmt(1 - ((1 - p) / p) ** 3, 4)]);
+  rows.push(['ER S(c)', fmt(erS(c), 4)]);
+  setRead($('#bethe-read'), rows);
+  if (tree.z !== st.z) treeBuild();
+  treeUpdate(); drawTree();
+}
+const model = () => (st.dist === 'poisson' ? poissonModel(st.c) : powerModel(st.gamma));
+function drawCM() {
+  const M = model();
+  const us = lin(0, 1, 220);
+  const web = [];
+  let u = 0;
+  web.push([0, 0]);
+  for (let i = 0; i < 40; i++) { const v = M.g1(u); web.push([u, v]); web.push([v, v]); if (Math.abs(v - u) < 1e-6) break; u = v; }
+  plot($('#cv-gcm'), {x: [0, 1], y: [0, 1], xlabel: 'u', ylabel: 'y',
+    lines: [{pts: [[0, 0], [1, 1]], color: C.muted, dash: [5, 4], width: 1.3},
+            {pts: web, color: C.note, width: 1.3, alpha: .85},
+            {pts: us.map(x => [x, M.g1(x)]), color: C.cm, width: 2.6}],
+    dots: [{x: M.u, y: M.u, color: C.cm, r: 5}],
+    notes: [{x: .04, y: .93, text: 'y = g₁(u)', color: C.cm}]});
+  const ks = Array.from({length: 16}, (_, k) => k);
+  const pmin = 1e-6;
+  plot($('#cv-pk'), {x: [-0.6, 15.6], y: [pmin, 1], ylog: true, xlabel: 'k', ylabel: 'probability',
+    bars: ks.map(k => ({x: k, y: Math.max(M.pk(k), pmin * 1.0001), w: 14, color: C.cm, alpha: .45})),
+    dots: ks.map(k => ({x: k, y: M.qk(k) > pmin ? M.qk(k) : NaN, color: C.note, r: 3.6}))});
+  const exists = M.u < 1 - 1e-6;
+  setRead($('#cm-read'), [
+    [M.kind === 'poisson' ? 'Poisson, c' : 'power law, γ', M.kind === 'poisson' ? fmt(st.c, 2) : fmt(st.gamma, 2)],
+    ['⟨k⟩', fmt(M.kmean, 3)], ['g₁′(1)', fmt(M.branch, 3)], ['u', fmt(M.u, 4)], ['S = 1 − g₀(u)', fmt(M.S, 4)],
+    ['', exists ? 'giant component exists' : 'no giant component']]);
+}
+let SG = null, GC = null;
+function drawPL() {
+  if (!SG) {
+    GC = gammaCrit();
+    $('#gc-out').textContent = GC.toFixed(4);
+    const gs = [...lin(1.0, 2, 10), ...lin(2.003, 3.6, 150), ...lin(3.6, 4, 15)];
+    SG = gs.map(g => [g, g <= 2 ? 1 : powerModel(g).S]);
+  }
+  const g = st.gamma, M = powerModel(g);
+  plot($('#cv-sg'), {x: [1, 4], y: [0, 1.05], xlabel: 'exponent γ', ylabel: 'S',
+    vlines: [{x: 2, color: C.muted, dash: [2, 3]}, {x: GC, color: C.muted, dash: [2, 3]}, {x: g, color: C.cm, dash: []}],
+    lines: [{pts: SG, color: C.ink, width: 2.2}],
+    dots: [...(st.plSim || []).map(d => ({x: d.g, y: d.S, color: C.crit, r: 3.5, alpha: .85})),
+           ...(g >= 1 ? [{x: g, y: M.S, color: C.cm, r: 5}] : [])],
+    notes: [{x: 2.05, y: .12, text: '2 < γ ≤ 3: ⟨k²⟩ → ∞', color: C.note}]});
+  const kg = lin(2.02, 4.5, 160).map(x => [x, zeta(x - 1) / zeta(x)]);
+  plot($('#cv-kg'), {x: [2, 4.5], y: [0, 6], xlabel: 'exponent γ', ylabel: '⟨k⟩',
+    vlines: [{x: g, color: C.cm, dash: []}],
+    lines: [{pts: kg, color: C.cm, width: 2.4}],
+    dots: g > 2 ? [{x: g, y: M.kmean, color: C.cm, r: 5}] : []});
+  setRead($('#pl-read'), [['γ', fmt(g, 2)], ['ζ(γ)', fmt(zeta(g), 4)], ['⟨k⟩', fmt(M.kmean, 3)],
+    ['(⟨k²⟩ − ⟨k⟩)/⟨k⟩', fmt(M.branch, 3)], ['u', fmt(M.u, 4)], ['S', fmt(M.S, 4)]]);
+}
+
+/* ---------- wiring ---------- */
+function syncInputs() {
+  $$('input[data-bind]').forEach(el => { el.value = st[el.dataset.bind]; });
+  $$('output[data-out]').forEach(el => { el.textContent = (+st[el.dataset.out]).toFixed(2); });
+  $('#z').value = st.z; $('#z-out').textContent = st.z;
+}
+function setC(c) {
+  st.c = c; syncInputs(); netUpdate(); netRead(); kick();
+  drawER(); drawCrit(); drawBethe(); if (st.dist === 'poisson') { drawCM(); cmUpdate(); }
+}
+function setGamma(g) { st.gamma = g; syncInputs(); if (st.dist === 'power') { drawCM(); cmUpdate(); } drawPL(); }
+function drawAll() { readColors(); drawNet(); cmv.draw(); drawER(); drawCrit(); drawBethe(); drawCM(); drawPL(); }
+
+$$('input[data-bind="c"]').forEach(el => el.addEventListener('input', () => { stopSweep(); setC(+el.value); }));
+$$('input[data-bind="gamma"]').forEach(el => el.addEventListener('input', () => setGamma(+el.value)));
+$('#z').addEventListener('input', e => { st.z = +e.target.value; syncInputs(); drawBethe(); });
+$('#net-n').addEventListener('change', e => { net.n = +e.target.value; netGenerate(false); netUpdate(); net.relax(200); netRead(); kick(); drawER(); });
+$('#btn-resample').addEventListener('click', () => { netGenerate(true); netUpdate(); netRead(); kick(); drawER(); });
+
+let sweeping = false;
+function stopSweep() { if (sweeping) { sweeping = false; $('#btn-sweep').textContent = 'Sweep c from 0'; } }
+$('#btn-sweep').addEventListener('click', () => {
+  if (sweeping) { stopSweep(); return; }
+  sweeping = true; $('#btn-sweep').textContent = 'Stop';
+  const t0 = performance.now(), T = 9000, c1 = 3.5;
+  const step = t => {
+    if (!sweeping) return;
+    const f = Math.min(1, (t - t0) / T);
+    st.c = Math.round(c1 * f * 100) / 100; syncInputs(); netUpdate(); netRead(); kick(); drawER(); drawCrit(); drawBethe();
+    if (st.dist === 'poisson') { drawCM(); cmUpdate(); }
+    if (f < 1) requestAnimationFrame(step); else stopSweep();
+  };
+  requestAnimationFrame(step);
+});
+
+function setDist(d) {
+  st.dist = d;
+  $('#d-poisson').setAttribute('aria-pressed', d === 'poisson'); $('#d-power').setAttribute('aria-pressed', d === 'power');
+  $('#row-cm-c').hidden = d !== 'poisson'; $('#row-cm-g').hidden = d !== 'power';
+  drawCM(); cmUpdate();
+}
+$('#d-poisson').addEventListener('click', () => setDist('poisson'));
+$('#d-power').addEventListener('click', () => setDist('power'));
+
+let simRunning = false;
+$('#btn-sim').addEventListener('click', async () => {
+  if (simRunning) return;
+  simRunning = true;
+  const btn = $('#btn-sim'), n = +$('#sim-n').value, R = +$('#sim-r').value;
+  const cs = [...lin(0.1, 3.5, 35), 0.95, 1.05].sort((a, b) => a - b);
+  st.sim = []; st.simN = n;
+  for (let i = 0; i < cs.length; i++) {
+    const c = cs[i];
+    let S = 0, chi = 0, cn = 0;
+    for (let r = 0; r < R; r++) { const o = sampleER(n, c); S += o.S; if (Number.isFinite(o.chi)) { chi += o.chi; cn++; } }
+    st.sim.push({c, S: S / R, chi: cn ? chi / cn : NaN});
+    btn.textContent = `Simulating ${Math.round(100 * (i + 1) / cs.length)}%`;
+    drawER(); drawCrit();
+    await new Promise(res => setTimeout(res, 0));
+  }
+  btn.textContent = 'Run again';
+  simRunning = false;
+});
+
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);
+new MutationObserver(drawAll).observe(document.documentElement, {attributes: true, attributeFilter: ['data-theme']});
+let rz;
+new ResizeObserver(() => { clearTimeout(rz); rz = setTimeout(drawAll, 60); }).observe(document.body);
+if (document.fonts) document.fonts.ready.then(drawAll);
+
+/* ---------- component coloring, CM sampling and simulations ---------- */
+st.colorAll = false;
+$$('.colors-toggle').forEach(btn => btn.addEventListener('click', () => {
+  st.colorAll = !st.colorAll;
+  $$('.colors-toggle').forEach(b => b.setAttribute('aria-pressed', st.colorAll));
+  net.draw(); cmv.draw(); drawTree();
+}));
+$('#btn-tree-resample').addEventListener('click', () => { tree.r = Float64Array.from({length: tree.n - 1}, Math.random); treeUpdate(); drawTree(); });
+let treeBusy = false;
+$('#btn-tree-mc').addEventListener('click', async () => {
+  if (treeBusy) return; treeBusy = true;
+  const z = st.z, c = st.c, p = Math.min(1, c / (z - 1)), T = 10000;
+  let hit = 0;
+  for (let t = 0; t < T; t++) {
+    if (rootReaches(z, p, 50)) hit++;
+    if (t % 1000 === 999) { $('#tree-status').textContent = `Growing trees: ${t + 1}/${T}`; await nextFrame(); }
+  }
+  st.treeMC = {key: `${z}|${c}`, P: hit / T};
+  const se = Math.sqrt(hit / T * (1 - hit / T) / T);
+  $('#tree-status').textContent = `Root reached depth 50 in ${(hit / T).toFixed(3)} ± ${se.toFixed(3)} of ${T} trees (z = ${z}, p = ${p.toFixed(3)}).`;
+  treeUpdate(); treeBusy = false;
+});
+$('#cm-n').addEventListener('change', e => { cmv.n = +e.target.value; cmResample(false); cmUpdate(); cmv.relax(200); cmv.kick(); });
+$('#btn-cm-resample').addEventListener('click', () => { cmResample(true); cmUpdate(); });
+const nextFrame = () => new Promise(res => setTimeout(res, 0));
+let cmBusy = false;
+$('#btn-cm-check').addEventListener('click', async () => {
+  if (cmBusy) return; cmBusy = true;
+  const R = 10, key = cmKey();
+  let S = 0;
+  for (let r = 0; r < R; r++) { S += cmLargest(10000); $('#cm-status').textContent = `Sampling n = 10⁴ networks: ${r + 1}/${R}`; await nextFrame(); }
+  st.cmCheck = {key, S: S / R, R};
+  $('#cm-status').textContent = `Average largest component over ${R} networks with n = 10⁴: ${(S / R).toFixed(3)} (theory ${model().S.toFixed(3)}).`;
+  cmRead(); cmBusy = false;
+});
+let plBusy = false;
+$('#btn-pl-sim').addEventListener('click', async () => {
+  if (plBusy) return; plBusy = true;
+  const saveDist = st.dist, saveG = st.gamma, gs = lin(1.6, 4.4, 15), R = 5;
+  st.plSim = [];
+  for (let i = 0; i < gs.length; i++) {
+    st.dist = 'power'; st.gamma = +gs[i].toFixed(2);
+    let S = 0; for (let r = 0; r < R; r++) S += cmLargest(10000);
+    st.dist = saveDist; st.gamma = saveG;
+    st.plSim.push({g: gs[i], S: S / R});
+    $('#pl-status').textContent = `${i + 1}/${gs.length} values of γ, ${R} networks each`;
+    drawPL(); await nextFrame();
+  }
+  $('#pl-status').textContent = `Done: ${gs.length} values of γ, ${R} networks of n = 10⁴ each.`;
+  plBusy = false;
+});
+
+/* ---------- theme toggle ---------- */
+const darkMQ = matchMedia('(prefers-color-scheme: dark)');
+const isDark = () => { const t = document.documentElement.dataset.theme; return t ? t === 'dark' : darkMQ.matches; };
+const themeLabel = () => { $('#btn-theme').textContent = isDark() ? 'Light mode' : 'Dark mode'; };
+try { const saved = localStorage.getItem('perc-theme'); if (saved === 'dark' || saved === 'light') document.documentElement.dataset.theme = saved; } catch (e) {}
+$('#btn-theme').addEventListener('click', () => {
+  const next = isDark() ? 'light' : 'dark';
+  document.documentElement.dataset.theme = next;
+  try { localStorage.setItem('perc-theme', next); } catch (e) {}
+  themeLabel();
+});
+darkMQ.addEventListener('change', themeLabel);
+themeLabel();
+
+/* ---------- init ---------- */
+readColors();
+netGenerate(false);
+netUpdate();
+net.relax(250);
+syncInputs();
+netRead();
+effTable();
+cmResample(false);
+cmInfo = configModel(cmv.n, cmU, mulberry32(cmSeed));
+cmv.setEdges(cmInfo.a, cmInfo.b, cmInfo.a.length);
+cmv.relax(250);
+cmRead();
+drawAll();
+kick();
+cmv.kick();
+})();
+</script>
+</body>
+</html>
