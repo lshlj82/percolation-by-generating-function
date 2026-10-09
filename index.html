@@ -76,6 +76,7 @@ button:hover{ background:var(--rule); }
 button.toggle[aria-pressed="true"]{ background:var(--ink); color:var(--paper); border-color:var(--ink); }
 #cv-cmnet{ display:block; width:100%; height:clamp(300px,46vw,440px); }
 #cv-tree{ display:block; width:100%; height:clamp(340px,60vw,560px); }
+.srcnote{ font-family:var(--sans); font-size:.85rem; color:var(--muted); margin:-.6em 0 1.2em; }
 .status{ font-family:var(--sans); font-size:.85rem; color:var(--muted); }
 button:focus-visible, select:focus-visible, input:focus-visible{ outline:2px solid var(--giant); outline-offset:2px; }
 .seg{ display:inline-flex; border:1px solid var(--muted); border-radius:999px; overflow:hidden; }
@@ -136,7 +137,7 @@ footer p{ max-width:80ch; }
 
 <header class="hero">
   <div class="topbar">
-    <p class="byline">Interactive companion to lecture notes by Sang Hoon Lee, 21st KIAS–APCTP Winter School on Statistical Physics. Web demo created by Claude Opus 5.5.</p>
+    <p class="byline">Interactive companion to lecture notes (<a href="ER_percolation.pdf">Erdős–Rényi</a>, <a href="CM_percolation.pdf">configuration model</a>; PDF) by Sang Hoon Lee, <a href="https://events.kias.re.kr/h/winter2024/">21st KIAS–APCTP Winter School on Statistical Physics</a>. Web demo created by Claude Opus 5.5.</p>
     <button id="btn-theme" aria-label="Switch color theme">Dark mode</button>
   </div>
   <h1>How a giant component appears</h1>
@@ -166,6 +167,7 @@ footer p{ max-width:80ch; }
 <section id="er">
   <div class="col">
     <h2><span class="num">1</span>Erdős–Rényi: one self-consistent equation</h2>
+    <p class="srcnote">From the lecture notes: <a href="ER_percolation.pdf">ER_percolation.pdf</a></p>
     <p>In Gilbert’s version of the random graph, \(G_{n,p}\), each of the \(\binom{n}{2}\) pairs is linked independently with probability \(p\). Instead of the giant component itself, track</p>
     <p class="note">why the complement? it’s more convenient!</p>
     <p>\(u\): the probability that a randomly chosen node does <em>not</em> belong to the giant component.</p>
@@ -200,6 +202,7 @@ footer p{ max-width:80ch; }
 <section id="crit">
   <div class="col">
     <h2><span class="num">2</span>Near the threshold: \(\beta=\gamma=1\)</h2>
+    <p class="srcnote">From the lecture notes: <a href="ER_percolation.pdf">ER_percolation.pdf</a></p>
     <p>Expanding \(S=1-e^{-cS}\) around \(S=0\),</p>
     <div class="eq">\[S\approx 1-\Big(1-cS+\tfrac12 c^2S^2\Big)=cS-\tfrac12c^2S^2\;\Rightarrow\;1=c-\tfrac12c^2S,\]</div>
     <div class="eq"><span class="hl crit">\[S=\frac{2(c-1)}{c^2}\propto(c-c^*)^{1}\propto(p-p^*)^{1},\qquad p^*=\frac{1}{n-1},\]</span></div>
@@ -239,7 +242,8 @@ footer p{ max-width:80ch; }
 <section id="bethe">
   <div class="col">
     <h2><span class="num">3</span>The same universality class as the Bethe lattice</h2>
-    <p>For bond percolation on a Bethe lattice with coordination number \(z\) (following Prof. Young-Sul Cho’s lecture), let \(A\) be the probability that a branch is connected to the infinite cluster. Then</p>
+    <p class="srcnote">From the lecture notes: <a href="ER_percolation.pdf">ER_percolation.pdf</a></p>
+    <p>For bond percolation on a Bethe lattice with coordination number \(z\) (equations as reproduced in the lecture notes from Prof. Young-Sul Cho’s lecture slides), let \(A\) be the probability that a branch is connected to the infinite cluster. Then</p>
     <div class="eq"><span class="hl purple">\[A=1-(1-pA)^{z-1},\qquad P_\infty=1-(1-pA)^{z},\qquad p_c=\frac{1}{z-1},\]</span></div>
     <p>and \(P_\infty\propto(p-p_c)\), so \(\beta=1\) again. For \(z=3\) it closes: \(P_\infty=1-\big(\frac{1-p}{p}\big)^3\) for \(p\ge\frac12\).</p>
     <p class="note purple">the same universality class!</p>
@@ -286,6 +290,7 @@ footer p{ max-width:80ch; }
 <section id="cm">
   <div class="col">
     <h2><span class="num">4</span>The configuration model: a recipe for \(S\)</h2>
+    <p class="srcnote">From the lecture notes: <a href="CM_percolation.pdf">CM_percolation.pdf</a></p>
     <p>Take a locally tree-like configuration model with degree distribution \(p_k\). For node \(i\) of degree \(k\) to be outside the giant component, <em>none</em> of its \(k\) branches may lead to it. The node at the end of each edge is outside with probability \(u\), and nothing distinguishes one branch from another: they are realized independently. So node \(i\) is outside with probability \(u^k\).</p>
     <p class="note green">the giant component may be out there, just not connected to node i</p>
     <p>Averaging over \(p_k\) gives \(1-S=g_0(u)\). The node reached along an edge has \(k\) further edges with the excess degree distribution \(q_k=(k+1)p_{k+1}/\langle k\rangle\), whose generating function is \(g_1\). This gives the recipe:</p>
@@ -342,6 +347,7 @@ footer p{ max-width:80ch; }
 <section id="pl">
   <div class="col">
     <h2><span class="num">5</span>Power-law degrees</h2>
+    <p class="srcnote">From the lecture notes: <a href="CM_percolation.pdf">CM_percolation.pdf</a></p>
     <p>Take the “pure” power law \(p_k=k^{-\gamma}/\zeta(\gamma)\) for \(k\ge1\) and \(p_0=0\), with the Riemann zeta function for normalization. Then</p>
     <div class="eq">\[g_0(u)=\frac{\mathrm{Li}_\gamma(u)}{\zeta(\gamma)},\qquad g_1(u)=\frac{\mathrm{Li}_{\gamma-1}(u)}{u\,\zeta(\gamma-1)},\qquad u=\frac{1}{\zeta(\gamma-1)}\sum_{k=1}^\infty k^{-(\gamma-1)}u^{k-1}.\]</div>
     <p>For \(\gamma\le2\), \(\zeta(\gamma-1)\to\infty\), so \(g_1(u)=0\) for every \(u&lt;1\): \(u=0\) is the only solution and \(S=1-g_0(0)=1\). The giant component fills the entire network.</p>
@@ -361,7 +367,8 @@ footer p{ max-width:80ch; }
   <dl class="read" id="pl-read"></dl>
 
   <footer>
-    <p>Sources: M. E. J. Newman, <em>Networks</em> (2nd ed.), Secs. 11.5–11.6 and 12.5; K. Christensen and N. R. Moloney, <em>Complexity and Criticality</em>, Table 1.2; S.-W. Son, G. Bizhani, C. Christensen, P. Grassberger and M. Paczuski, EPL <strong>97</strong>, 16006 (2012); Bethe-lattice treatment after Prof. Young-Sul Cho’s lecture; generating-function picture cf. Prof. S.-C. Park’s lecture.</p>
+    <p>Lecture notes (PDF): <a href="ER_percolation.pdf">ER_percolation.pdf</a> and <a href="CM_percolation.pdf">CM_percolation.pdf</a>. Source code: <a href="https://github.com/lshlj82/percolation-by-generating-function">github.com/lshlj82/percolation-by-generating-function</a>.</p>
+    <p>Sources: M. E. J. Newman, <em>Networks</em> (2nd ed.), Secs. 11.5–11.6 and 12.5; K. Christensen and N. R. Moloney, <em>Complexity and Criticality</em>, Table 1.2; S.-W. Son, G. Bizhani, C. Christensen, P. Grassberger and M. Paczuski, EPL <strong>97</strong>, 16006 (2012); Bethe-lattice equations as reproduced in the lecture notes from Prof. Young-Sul Cho’s lecture slides; the notes also refer to Prof. S.-C. Park’s lecture for the same graphical argument.</p>
     <p>Web demo created by Claude Opus 5.5 (Anthropic) from Sang Hoon Lee’s handwritten lecture notes.</p>
     <p>All curves are computed in your browser: Newton’s method for \(S=1-e^{-cS}\), bisection for the fixed points, Euler–Maclaurin summation for \(\zeta\) and \(\mathrm{Li}_s\), and union–find for the simulations.</p>
   </footer>

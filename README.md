@@ -1,8 +1,24 @@
 # Percolation on Random Networks: An Interactive Derivation
 
-An interactive web companion to Sang Hoon Lee's lecture notes on percolation in random networks, prepared for the **21st KIAS–APCTP Winter School on Statistical Physics**.
+An interactive web companion to Sang Hoon Lee's lecture notes on percolation in random networks, prepared for the **[21st KIAS–APCTP Winter School on Statistical Physics](https://events.kias.re.kr/h/winter2024/)**.
 
 The web demo was created by **Claude Opus 5.5** (Anthropic) from the handwritten lecture notes.
+
+**Live demo:** https://lshlj82.github.io/percolation-by-generating-function/ (once GitHub Pages is enabled; see below)
+
+## Lecture notes
+
+- [ER_percolation.pdf](ER_percolation.pdf): percolation in the Erdős–Rényi random graph, critical exponents, and the correspondence with the Bethe lattice (sections 1–3 of the demo).
+- [CM_percolation.pdf](CM_percolation.pdf): percolation in the configuration model via generating functions, the Erdős–Rényi case revisited, and power-law degree distributions (sections 4–5 of the demo).
+
+## Repository contents
+
+| File | Description |
+| --- | --- |
+| `index.html` | The interactive demo (single self-contained page) |
+| `ER_percolation.pdf` | Lecture notes: Erdős–Rényi percolation |
+| `CM_percolation.pdf` | Lecture notes: configuration-model percolation |
+| `README.md` | This file |
 
 ## What it covers
 
@@ -17,9 +33,9 @@ The web demo was created by **Claude Opus 5.5** (Anthropic) from the handwritten
 
 It is a single self-contained file. Open `index.html` in any modern browser, or serve it with GitHub Pages:
 
-1. Push `index.html` and this README to a repository.
+1. Put `index.html`, the two PDFs and this README at the root of the repository, keeping the PDF file names exactly as above (the page links to them by relative path).
 2. Go to **Settings → Pages**, choose **Deploy from a branch**, and select the branch and `/ (root)`.
-3. The demo will be available at `https://<user>.github.io/<repo>/`.
+3. The demo will be available at https://lshlj82.github.io/percolation-by-generating-function/.
 
 An internet connection is needed only for web fonts (Google Fonts) and equation rendering (MathJax 3.2.2 from jsDelivr). All numerics run locally.
 
@@ -47,7 +63,7 @@ Checks: $\zeta(2)$ and $\mathrm{Li}_2(1/2)$ agree with exact values to about $10
 - M. E. J. Newman, *Networks*, 2nd ed. (Oxford University Press, 2018), Secs. 11.5–11.6 and 12.5.
 - K. Christensen and N. R. Moloney, *Complexity and Criticality* (Imperial College Press, 2005), Table 1.2.
 - S.-W. Son, G. Bizhani, C. Christensen, P. Grassberger, and M. Paczuski, EPL **97**, 16006 (2012).
-- Bethe-lattice treatment after Prof. Young-Sul Cho's lecture; generating-function picture cf. Prof. S.-C. Park's lecture.
+- Bethe-lattice equations as reproduced in the lecture notes from Prof. Young-Sul Cho's lecture slides; the notes also refer to Prof. S.-C. Park's lecture for the same graphical argument.
 
 ## Credits
 
