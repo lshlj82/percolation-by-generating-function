@@ -18,8 +18,8 @@ window.MathJax = {
 <style>
 :root{
   --paper:#F5F7FA; --panel:#FFFFFF; --ink:#17202C; --muted:#5B6677; --rule:#DCE1E8;
-  --giant:#137FA8; --giant-hl:#BDEEFA; --crit:#C2368C; --crit-hl:#FFD3F0;
-  --cm:#2A8A42; --cm-hl:#D3F3CD; --note:#C46F0C; --purple:#6E3B9C; --purple-hl:#E8DAF7;
+  --giant:#10739B; --giant-hl:#BDEEFA; --crit:#C2368C; --crit-hl:#FFD3F0;
+  --cm:#237A39; --cm-hl:#D3F3CD; --note:#A35A00; --purple:#6E3B9C; --purple-hl:#E8DAF7;
   --serif:'Source Serif 4', Georgia, 'Times New Roman', serif;
   --sans:'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 }
@@ -64,6 +64,7 @@ a{ color:var(--giant); }
 /* ---------- controls ---------- */
 .ctrl{ display:grid; grid-template-columns:auto minmax(0,1fr) 4.2em; align-items:center; gap:12px;
   font-family:var(--sans); font-size:.95rem; }
+.ctrl[hidden]{ display:none; }
 .ctrl label{ white-space:nowrap; }
 .ctrl output{ font-variant-numeric:tabular-nums; text-align:right; font-weight:600; }
 input[type=range]{ width:100%; accent-color:var(--giant); min-height:28px; }
@@ -78,6 +79,8 @@ button.toggle[aria-pressed="true"]{ background:var(--ink); color:var(--paper); b
 #cv-tree{ display:block; width:100%; height:clamp(340px,60vw,560px); }
 .srcnote{ font-family:var(--sans); font-size:.85rem; color:var(--muted); margin:-.6em 0 1.2em; }
 .status{ font-family:var(--sans); font-size:.85rem; color:var(--muted); }
+.fn{ font-family:var(--sans); font-size:.85rem; color:var(--muted); }
+.sr-only{ position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0; }
 button:focus-visible, select:focus-visible, input:focus-visible{ outline:2px solid var(--giant); outline-offset:2px; }
 .seg{ display:inline-flex; border:1px solid var(--muted); border-radius:999px; overflow:hidden; }
 .seg button{ border:0; border-radius:0; }
@@ -137,7 +140,7 @@ footer p{ max-width:80ch; }
 
 <header class="hero">
   <div class="topbar">
-    <p class="byline">Interactive companion to lecture notes (<a href="ER_percolation.pdf">Erdős–Rényi</a>, <a href="CM_percolation.pdf">configuration model</a>; PDF) by Sang Hoon Lee, <a href="https://events.kias.re.kr/h/winter2024/">21st KIAS–APCTP Winter School on Statistical Physics</a>. Web demo created by Claude Opus 5.5.</p>
+    <p class="byline">Interactive companion to lecture notes (<a href="ER_percolation.pdf">Erdős–Rényi</a>, PDF, 8 pages, 10.9 MB; <a href="CM_percolation.pdf">configuration model</a>, PDF, 8 pages, 12.6 MB) by Sang Hoon Lee, <a href="https://events.kias.re.kr/h/winter2024/">21st KIAS–APCTP Winter School on Statistical Physics</a>. Web demo created by Claude Opus 5.5.</p>
     <button id="btn-theme" aria-label="Switch color theme">Dark mode</button>
   </div>
   <h1>How a giant component appears</h1>
@@ -145,7 +148,7 @@ footer p{ max-width:80ch; }
   <p class="lede">An empty graph has components of size 1; a complete graph has one component of size \(n\). Drag the mean degree \(c\) and watch a single component swallow a finite fraction of the network once \(c\) passes 1. Every pair in this \(G_{n,p}\) sample is linked with probability \(p=c/(n-1)\); the largest component is drawn in blue. Turn on “Color all components” to give every other component with two or more nodes its own color; isolated nodes stay grey.</p>
 
   <div class="stage">
-    <canvas id="cv-net" aria-label="A random graph whose largest connected component is highlighted"></canvas>
+    <canvas id="cv-net" role="img" aria-describedby="net-read" aria-label="A random graph whose largest connected component is highlighted"></canvas>
     <dl class="read" id="net-read"></dl>
     <div class="stage-controls">
       <div class="ctrl"><label for="c-hero">Mean degree \(c\)</label><input id="c-hero" data-bind="c" type="range" min="0" max="4" step="0.01"><output data-out="c"></output></div>
@@ -162,21 +165,23 @@ footer p{ max-width:80ch; }
 </header>
 
 <main class="doc">
+<p class="sr-only" role="status" id="sr-status"></p>
 
 <!-- ================= 1. ER ================= -->
 <section id="er">
   <div class="col">
     <h2><span class="num">1</span>Erdős–Rényi: one self-consistent equation</h2>
-    <p class="srcnote">From the lecture notes: <a href="ER_percolation.pdf">ER_percolation.pdf</a></p>
+    <p class="srcnote">From the lecture notes: <a href="ER_percolation.pdf">ER_percolation.pdf</a> (8 pages, 10.9 MB)</p>
     <p>In Gilbert’s version of the random graph, \(G_{n,p}\), each of the \(\binom{n}{2}\) pairs is linked independently with probability \(p\). Instead of the giant component itself, track</p>
     <p class="note">why the complement? it’s more convenient!</p>
     <p>\(u\): the probability that a randomly chosen node does <em>not</em> belong to the giant component.</p>
-    <p>Node \(i\) stays outside if, for every other node \(j\), either there is no edge (probability \(1-p\)) or there is an edge but \(j\) is itself outside (probability \(pu\)). With \(p=c/(n-1)\),</p>
-    <div class="eq">\[u=(1-p+pu)^{n-1}=\Big[1-\frac{c}{n-1}(1-u)\Big]^{n-1}\;\xrightarrow{\;n\to\infty\;}\;e^{-c(1-u)}.\]</div>
+    <p>Node \(i\) stays outside if, for every other node \(j\), either there is no edge (probability \(1-p\)) or there is an edge but \(j\) is itself outside (probability \(pu\)). Strictly, the \(u\) needed here is the probability that \(j\) is not connected to the giant component through its <em>other</em> edges, excluding the one to \(i\); for \(G_{n,p}\) with \(n\to\infty\) this edge-following probability equals the node probability, because the excess degree distribution is again Poisson with mean \(c\) (section 4). Treating the \(n-1\) branches as independent ignores short loops and correlations between branches, so the finite-\(n\) expression below is a heuristic; it becomes exact only in the locally tree-like limit \(n\to\infty\). With \(p=c/(n-1)\),</p>
+    <div class="eq">\[u\simeq(1-p+pu)^{n-1}=\Big[1-\frac{c}{n-1}(1-u)\Big]^{n-1}\;\xrightarrow{\;n\to\infty\;}\;e^{-c(1-u)}.\]</div>
     <p class="note blue">first given by Erdős and Rényi in 1959</p>
     <p>Our original interest is the fraction \(S=1-u\) of nodes in the giant component, which obeys</p>
     <div class="eq"><span class="hl giant">\[S=1-e^{-cS}.\]</span></div>
-    <p>There is no closed form, but the graphical solution says everything: \(y=1-e^{-cS}\) is concave with slope \(c\) at the origin, so it crosses \(y=S\) a second time only when \(c&gt;1\).</p>
+    <p>There is no solution in elementary functions,<sup><a href="#fn-lw" id="fn-lw-ref" aria-label="footnote 1">1</a></sup> but the graphical solution says everything: \(y=1-e^{-cS}\) is concave with slope \(c\) at the origin, so it crosses \(y=S\) a second time only when \(c&gt;1\).</p>
+    <p class="fn" id="fn-lw"><sup>1</sup> With the principal branch \(W_0\) of the Lambert \(W\) function, \(S=1+W_0(-c\,e^{-c})/c\) for \(c&gt;1\). The curves on this page solve the equation numerically. <a href="#fn-lw-ref" aria-label="back to text">↩</a></p>
   </div>
 
   <div class="ctrl-row">
@@ -190,10 +195,10 @@ footer p{ max-width:80ch; }
   </div>
 
   <div class="figs">
-    <figure class="panel"><canvas id="cv-ger"></canvas>
-      <figcaption>Graphical solution. Grey curves: \(c=0.5,\,1,\,1.5\). Blue: your \(c\). The dot marks the nontrivial root when it exists.</figcaption></figure>
-    <figure class="panel"><canvas id="cv-ser"></canvas>
-      <figcaption>Giant component size \(S(c)\) for \(n\to\infty\). Hollow dot: the sample above. Filled dots: ensemble averages of the largest component fraction.</figcaption></figure>
+    <figure class="panel"><canvas id="cv-ger" role="img" aria-labelledby="cap-ger" aria-describedby="er-read"></canvas>
+      <figcaption id="cap-ger">Graphical solution. Grey curves: \(c=0.5,\,1,\,1.5\). Blue: your \(c\). The dot marks the nontrivial root when it exists.</figcaption></figure>
+    <figure class="panel"><canvas id="cv-ser" role="img" aria-labelledby="cap-ser" aria-describedby="er-read"></canvas>
+      <figcaption id="cap-ser">Giant component size \(S(c)\) for \(n\to\infty\). Hollow dot: the sample above. Filled dots: ensemble averages of the largest component fraction.</figcaption></figure>
   </div>
   <dl class="read" id="er-read"></dl>
 </section>
@@ -202,10 +207,10 @@ footer p{ max-width:80ch; }
 <section id="crit">
   <div class="col">
     <h2><span class="num">2</span>Near the threshold: \(\beta=\gamma=1\)</h2>
-    <p class="srcnote">From the lecture notes: <a href="ER_percolation.pdf">ER_percolation.pdf</a></p>
+    <p class="srcnote">From the lecture notes: <a href="ER_percolation.pdf">ER_percolation.pdf</a> (8 pages, 10.9 MB)</p>
     <p>Expanding \(S=1-e^{-cS}\) around \(S=0\),</p>
     <div class="eq">\[S\approx 1-\Big(1-cS+\tfrac12 c^2S^2\Big)=cS-\tfrac12c^2S^2\;\Rightarrow\;1=c-\tfrac12c^2S,\]</div>
-    <div class="eq"><span class="hl crit">\[S=\frac{2(c-1)}{c^2}\propto(c-c^*)^{1}\propto(p-p^*)^{1},\qquad p^*=\frac{1}{n-1},\]</span></div>
+    <div class="eq"><span class="hl crit">\[S\approx\frac{2(c-1)}{c^2}\propto(c-c^*)^{1}\propto(p-p^*)^{1}\quad(c\to1^+),\qquad p^*=\frac{1}{n-1},\]</span></div>
     <p>so \(S\propto(p-p_c)^\beta\) with <strong>\(\beta=1\)</strong>.</p>
     <p class="note pink">in agreement with the mean-field universality class of percolation</p>
     <p>The susceptibility analogue is the average size of the (non-percolating) component to which a randomly chosen node belongs. For the random graph (Newman, Sec. 11.6),</p>
@@ -216,12 +221,12 @@ footer p{ max-width:80ch; }
   </div>
 
   <div class="figs">
-    <figure class="panel"><canvas id="cv-chi"></canvas>
-      <figcaption>\(\langle s\rangle\) against \(c\), as in Newman’s Fig. 11.5. Dots: simulations, excluding the largest component (run them in section 1). Finite \(n\) rounds off the divergence.</figcaption></figure>
-    <figure class="panel"><canvas id="cv-llS"></canvas>
-      <figcaption>Log–log: \(S\) against \(c-1\). Dashed: \(2(c-1)\). Slope 1 means \(\beta=1\).</figcaption></figure>
-    <figure class="panel"><canvas id="cv-llchi"></canvas>
-      <figcaption>Log–log: \(\langle s\rangle\) against \(|c-1|\). Pink: \(c&lt;1\). Blue: \(c&gt;1\). Both approach slope \(-1\).</figcaption></figure>
+    <figure class="panel"><canvas id="cv-chi" role="img" aria-labelledby="cap-chi"></canvas>
+      <figcaption id="cap-chi">\(\langle s\rangle\) against \(c\), as in Newman’s Fig. 11.5. Dots: simulations, excluding the largest component (run them in section 1). Finite \(n\) rounds off the divergence.</figcaption></figure>
+    <figure class="panel"><canvas id="cv-llS" role="img" aria-labelledby="cap-llS"></canvas>
+      <figcaption id="cap-llS">Log–log: \(S\) against \(c-1\). Dashed: \(2(c-1)\). Slope 1 means \(\beta=1\).</figcaption></figure>
+    <figure class="panel"><canvas id="cv-llchi" role="img" aria-labelledby="cap-llchi"></canvas>
+      <figcaption id="cap-llchi">Log–log: \(\langle s\rangle\) against \(|c-1|\). Pink: \(c&lt;1\). Blue: \(c&gt;1\). Both approach slope \(-1\).</figcaption></figure>
   </div>
 
   <div class="col">
@@ -242,17 +247,17 @@ footer p{ max-width:80ch; }
 <section id="bethe">
   <div class="col">
     <h2><span class="num">3</span>The same universality class as the Bethe lattice</h2>
-    <p class="srcnote">From the lecture notes: <a href="ER_percolation.pdf">ER_percolation.pdf</a></p>
+    <p class="srcnote">From the lecture notes: <a href="ER_percolation.pdf">ER_percolation.pdf</a> (8 pages, 10.9 MB)</p>
     <p>For bond percolation on a Bethe lattice with coordination number \(z\) (equations as reproduced in the lecture notes from Prof. Young-Sul Cho’s lecture slides), let \(A\) be the probability that a branch is connected to the infinite cluster. Then</p>
     <div class="eq"><span class="hl purple">\[A=1-(1-pA)^{z-1},\qquad P_\infty=1-(1-pA)^{z},\qquad p_c=\frac{1}{z-1},\]</span></div>
     <p>and \(P_\infty\propto(p-p_c)\), so \(\beta=1\) again. For \(z=3\) it closes: \(P_\infty=1-\big(\frac{1-p}{p}\big)^3\) for \(p\ge\frac12\).</p>
     <p class="note purple">the same universality class!</p>
-    <p>The finite-\(n\) Erdős–Rényi equation has exactly the Bethe form under the dictionary below. Plotting against \(c=p(z-1)\), the Bethe curve tends to the Erdős–Rényi \(S(c)\) as \(z\) grows.</p>
+    <p>Written at finite \(n\), the heuristic Erdős–Rényi equation of section 1 (independent branches; exact only as \(n\to\infty\)) has exactly the Bethe form under the dictionary below. Plotting against \(c=p(z-1)\), the Bethe curve tends to the Erdős–Rényi \(S(c)\) as \(z\) grows.</p>
     <div class="tablewrap"><table>
       <thead><tr><th>Erdős–Rényi</th><th>Bethe lattice</th></tr></thead>
       <tbody><tr><td>\(u\)</td><td>\(1-A\)</td></tr><tr><td>\(n-1\)</td><td>\(z-1\)</td></tr>
       <tr><td>\(p_c=1/(n-1)\)</td><td>\(p_c=1/(z-1)\)</td></tr>
-      <tr><td>\(u=\big[1-\frac{c}{n-1}(1-u)\big]^{n-1}\)</td><td>\(1-A=(1-pA)^{z-1}\)</td></tr></tbody>
+      <tr><td>\(u\simeq\big[1-\frac{c}{n-1}(1-u)\big]^{n-1}\)</td><td>\(1-A=(1-pA)^{z-1}\)</td></tr></tbody>
     </table></div>
   </div>
   <div class="ctrl-row">
@@ -260,10 +265,10 @@ footer p{ max-width:80ch; }
     <div class="ctrl"><label for="c-bethe">\(c=p(z-1)\)</label><input id="c-bethe" data-bind="c" type="range" min="0" max="4" step="0.01"><output data-out="c"></output></div>
   </div>
   <div class="figs">
-    <figure class="panel"><canvas id="cv-bethe"></canvas>
-      <figcaption>Purple: \(P_\infty\) on the Bethe lattice against \(c=p(z-1)\) (defined up to \(p=1\)). Faint purple: \(z=3\). Dashed: Erdős–Rényi \(S(c)\).</figcaption></figure>
-    <figure class="panel"><canvas id="cv-bethe-p"></canvas>
-      <figcaption>The same \(P_\infty\) against the bare bond probability \(p\), with \(p_c=1/(z-1)\) marked.</figcaption></figure>
+    <figure class="panel"><canvas id="cv-bethe" role="img" aria-labelledby="cap-bethe" aria-describedby="bethe-read"></canvas>
+      <figcaption id="cap-bethe">Purple: \(P_\infty\) on the Bethe lattice against \(c=p(z-1)\) (defined up to \(p=1\)). Faint purple: \(z=3\). Dashed: Erdős–Rényi \(S(c)\).</figcaption></figure>
+    <figure class="panel"><canvas id="cv-bethe-p" role="img" aria-labelledby="cap-bethe-p" aria-describedby="bethe-read"></canvas>
+      <figcaption id="cap-bethe-p">The same \(P_\infty\) against the bare bond probability \(p\), with \(p_c=1/(z-1)\) marked.</figcaption></figure>
   </div>
   <dl class="read" id="bethe-read"></dl>
 
@@ -273,7 +278,7 @@ footer p{ max-width:80ch; }
     <p>On a tree, \(P_\infty\) is the probability that the root’s cluster reaches the boundary as \(D\to\infty\). “Estimate \(P_\infty\)” runs that experiment on \(10^4\) trees of depth 50, grown as a branching process, and compares with the depth-50 recursion and the \(D\to\infty\) result.</p>
   </div>
   <div class="stage">
-    <canvas id="cv-tree" aria-label="A finite Bethe lattice with occupied bonds and the root cluster highlighted"></canvas>
+    <canvas id="cv-tree" role="img" aria-describedby="tree-read" aria-label="A finite Bethe lattice with occupied bonds and the root cluster highlighted"></canvas>
     <dl class="read" id="tree-read"></dl>
     <div class="stage-controls">
       <span class="status" id="tree-status">The boundary of a finite tree holds a large share of its nodes, so a single sample is only suggestive.</span>
@@ -290,10 +295,10 @@ footer p{ max-width:80ch; }
 <section id="cm">
   <div class="col">
     <h2><span class="num">4</span>The configuration model: a recipe for \(S\)</h2>
-    <p class="srcnote">From the lecture notes: <a href="CM_percolation.pdf">CM_percolation.pdf</a></p>
-    <p>Take a locally tree-like configuration model with degree distribution \(p_k\). For node \(i\) of degree \(k\) to be outside the giant component, <em>none</em> of its \(k\) branches may lead to it. The node at the end of each edge is outside with probability \(u\), and nothing distinguishes one branch from another: they are realized independently. So node \(i\) is outside with probability \(u^k\).</p>
+    <p class="srcnote">From the lecture notes: <a href="CM_percolation.pdf">CM_percolation.pdf</a> (8 pages, 12.6 MB)</p>
+    <p>Take a locally tree-like configuration model with degree distribution \(p_k\). For node \(i\) of degree \(k\) to be outside the giant component, <em>none</em> of its \(k\) branches may lead to it. Let \(u\) be the probability that the node reached by following an edge is not connected to the giant component through its remaining edges, excluding the one we arrived along. In the limit \(n\to\infty\) the network is locally tree-like, so the \(k\) branches are independent and nothing distinguishes one from another. So node \(i\) is outside with probability \(u^k\).</p>
     <p class="note green">the giant component may be out there, just not connected to node i</p>
-    <p>Averaging over \(p_k\) gives \(1-S=g_0(u)\). The node reached along an edge has \(k\) further edges with the excess degree distribution \(q_k=(k+1)p_{k+1}/\langle k\rangle\), whose generating function is \(g_1\). This gives the recipe:</p>
+    <p>Averaging over \(p_k\) gives \(1-S=g_0(u)\). The node reached along an edge has \(k\) further edges with the excess degree distribution \(q_k=(k+1)p_{k+1}/\langle k\rangle\), whose generating function is \(g_1\); each of those branches fails with the same edge-following probability \(u\), so \(u=g_1(u)\). This gives the recipe:</p>
     <ol class="recipe">
       <li>from \(p_k\), calculate \(g_0(u)=\sum_k p_k u^k\);</li>
       <li>from \(g_0\), calculate \(g_1(u)=g_0'(u)/g_0'(1)\);</li>
@@ -303,7 +308,7 @@ footer p{ max-width:80ch; }
     <p>A nontrivial root \(u&lt;1\) exists when \(g_1\) crosses the diagonal, i.e. when the slope at \(u=1\) (the average branching) exceeds 1:</p>
     <div class="eq">\[g_1'(1)=\sum_{k}k\,q_k=\frac{\langle k^2\rangle-\langle k\rangle}{\langle k\rangle}&gt;1\iff\langle k^2\rangle-2\langle k\rangle&gt;0.\]</div>
     <p class="note">for a “walk” to continue, each node needs at least one more edge, on average</p>
-    <p><strong>Erdős–Rényi revisited.</strong> With \(p_k=e^{-c}c^k/k!\), \(g_0(u)=e^{c(u-1)}\), \(g_0'(1)=c\), so \(g_1(u)=g_0(u)\): the excess degree distribution equals the degree distribution, \(q_k=\frac1c(k+1)e^{-c}\frac{c^{k+1}}{(k+1)!}=p_k\). Then \(u=e^{c(u-1)}\) and \(S=1-e^{-cS}\), as in section 1 (see also S.-W. Son <em>et al.</em>, EPL <strong>97</strong>, 16006).</p>
+    <p><strong>Erdős–Rényi revisited.</strong> With \(p_k=e^{-c}c^k/k!\), \(g_0(u)=e^{c(u-1)}\), \(g_0'(1)=c\), so \(g_1(u)=g_0(u)\): the excess degree distribution equals the degree distribution, \(q_k=\frac1c(k+1)e^{-c}\frac{c^{k+1}}{(k+1)!}=p_k\). So the edge-following \(u\) coincides with the probability for a random node, which is why section 1 could use a single \(u\). Then \(u=e^{c(u-1)}\) and \(S=1-e^{-cS}\), as in section 1 (see also S.-W. Son <em>et al.</em>, EPL <strong>97</strong>, 16006).</p>
   </div>
 
   <div class="ctrl-row">
@@ -315,19 +320,19 @@ footer p{ max-width:80ch; }
     <div class="ctrl cm" id="row-cm-g" hidden><label for="g-cm">Exponent \(\gamma\)</label><input id="g-cm" data-bind="gamma" type="range" min="1.5" max="4.5" step="0.01"><output data-out="gamma"></output></div>
   </div>
   <div class="figs">
-    <figure class="panel"><canvas id="cv-gcm"></canvas>
-      <figcaption>Green: \(y=g_1(u)\). Dashed: \(y=u\). Orange staircase: iterating \(u\leftarrow g_1(u)\) from \(u=0\), which climbs to the smallest fixed point, the physical one.</figcaption></figure>
-    <figure class="panel"><canvas id="cv-pk"></canvas>
-      <figcaption>Degree distribution \(p_k\) (bars) and excess degree distribution \(q_k\) (dots), log scale. For Poisson they coincide.</figcaption></figure>
+    <figure class="panel"><canvas id="cv-gcm" role="img" aria-labelledby="cap-gcm" aria-describedby="cm-read"></canvas>
+      <figcaption id="cap-gcm">Green: \(y=g_1(u)\). Dashed: \(y=u\). Orange staircase: iterating \(u\leftarrow g_1(u)\) from \(u=0\), which climbs to the smallest fixed point, the physical one.</figcaption></figure>
+    <figure class="panel"><canvas id="cv-pk" role="img" aria-labelledby="cap-pk" aria-describedby="cm-read"></canvas>
+      <figcaption id="cap-pk">Degree distribution \(p_k\) (bars) and excess degree distribution \(q_k\) (dots), log scale. For Poisson they coincide.</figcaption></figure>
   </div>
   <dl class="read" id="cm-read"></dl>
 
   <div class="col">
     <h3>A sampled configuration-model network</h3>
-    <p>The theory above assumes \(n\to\infty\). Here is an actual realization for the distribution and parameter you chose: each node draws its degree from \(p_k\) (truncated at \(k=n-1\)), the stubs are paired uniformly at random, and self-loops are discarded. Moving the slider keeps each node’s random draw, so the network changes smoothly. Compare the largest component with \(S\).</p>
+    <p>The theory above assumes \(n\to\infty\). Here is an actual realization for the distribution and parameter you chose: each node draws its degree from \(p_k\) (truncated at \(k=n-1\)), the stubs are paired uniformly at random, and self-loops are discarded (as is the one leftover stub when the total is odd; multi-edges are kept). The mean and maximum degree shown are those of the drawn network, after these removals, with the values drawn from \(p_k\) alongside. Moving the slider keeps each node’s random draw, so the network changes smoothly. Compare the largest component with \(S\).</p>
   </div>
   <div class="stage">
-    <canvas id="cv-cmnet" aria-label="A sampled configuration-model network with its largest component highlighted"></canvas>
+    <canvas id="cv-cmnet" role="img" aria-describedby="cmnet-read" aria-label="A sampled configuration-model network with its largest component highlighted"></canvas>
     <dl class="read" id="cmnet-read"></dl>
     <div class="stage-controls">
       <span class="status" id="cm-status">Small networks fluctuate; check a larger one for a fair comparison with \(S\).</span>
@@ -347,7 +352,7 @@ footer p{ max-width:80ch; }
 <section id="pl">
   <div class="col">
     <h2><span class="num">5</span>Power-law degrees</h2>
-    <p class="srcnote">From the lecture notes: <a href="CM_percolation.pdf">CM_percolation.pdf</a></p>
+    <p class="srcnote">From the lecture notes: <a href="CM_percolation.pdf">CM_percolation.pdf</a> (8 pages, 12.6 MB)</p>
     <p>Take the “pure” power law \(p_k=k^{-\gamma}/\zeta(\gamma)\) for \(k\ge1\) and \(p_0=0\), with the Riemann zeta function for normalization. Then</p>
     <div class="eq">\[g_0(u)=\frac{\mathrm{Li}_\gamma(u)}{\zeta(\gamma)},\qquad g_1(u)=\frac{\mathrm{Li}_{\gamma-1}(u)}{u\,\zeta(\gamma-1)},\qquad u=\frac{1}{\zeta(\gamma-1)}\sum_{k=1}^\infty k^{-(\gamma-1)}u^{k-1}.\]</div>
     <p>For \(\gamma\le2\), \(\zeta(\gamma-1)\to\infty\), so \(g_1(u)=0\) for every \(u&lt;1\): \(u=0\) is the only solution and \(S=1-g_0(0)=1\). The giant component fills the entire network.</p>
@@ -359,15 +364,15 @@ footer p{ max-width:80ch; }
     <div class="inline"><button id="btn-pl-sim">Simulate S(γ) with n = 10⁴</button><span class="status" id="pl-status"></span></div>
   </div>
   <div class="figs">
-    <figure class="panel"><canvas id="cv-sg"></canvas>
-      <figcaption>Giant component size against \(\gamma\), as in Newman’s Fig. 12.6. Dotted lines: \(\gamma=2\) and \(\gamma_c\). Pink dots: largest-component fraction in sampled configuration models with \(n=10^4\); the slow decay of finite-size effects near \(\gamma_c\) is visible.</figcaption></figure>
-    <figure class="panel"><canvas id="cv-kg"></canvas>
-      <figcaption>\(\langle k\rangle=\zeta(\gamma-1)/\zeta(\gamma)\): the mean degree itself drops as \(\gamma\) grows.</figcaption></figure>
+    <figure class="panel"><canvas id="cv-sg" role="img" aria-labelledby="cap-sg" aria-describedby="pl-read"></canvas>
+      <figcaption id="cap-sg">Giant component size against \(\gamma\), as in Newman’s Fig. 12.6. Dotted lines: \(\gamma=2\) and \(\gamma_c\). Pink dots: largest-component fraction in sampled configuration models with \(n=10^4\); the slow decay of finite-size effects near \(\gamma_c\) is visible.</figcaption></figure>
+    <figure class="panel"><canvas id="cv-kg" role="img" aria-labelledby="cap-kg" aria-describedby="pl-read"></canvas>
+      <figcaption id="cap-kg">\(\langle k\rangle=\zeta(\gamma-1)/\zeta(\gamma)\): the mean degree itself drops as \(\gamma\) grows.</figcaption></figure>
   </div>
   <dl class="read" id="pl-read"></dl>
 
   <footer>
-    <p>Lecture notes (PDF): <a href="ER_percolation.pdf">ER_percolation.pdf</a> and <a href="CM_percolation.pdf">CM_percolation.pdf</a>. Source code: <a href="https://github.com/lshlj82/percolation-by-generating-function">github.com/lshlj82/percolation-by-generating-function</a>.</p>
+    <p>Lecture notes (PDF): <a href="ER_percolation.pdf">ER_percolation.pdf</a> (8 pages, 10.9 MB) and <a href="CM_percolation.pdf">CM_percolation.pdf</a> (8 pages, 12.6 MB). Source code: <a href="https://github.com/lshlj82/percolation-by-generating-function">github.com/lshlj82/percolation-by-generating-function</a>.</p>
     <p>Sources: M. E. J. Newman, <em>Networks</em> (2nd ed.), Secs. 11.5–11.6 and 12.5; K. Christensen and N. R. Moloney, <em>Complexity and Criticality</em>, Table 1.2; S.-W. Son, G. Bizhani, C. Christensen, P. Grassberger and M. Paczuski, EPL <strong>97</strong>, 16006 (2012); Bethe-lattice equations as reproduced in the lecture notes from Prof. Young-Sul Cho’s lecture slides; the notes also refer to Prof. S.-C. Park’s lecture for the same graphical argument.</p>
     <p>Web demo created by Claude Opus 5.5 (Anthropic) from Sang Hoon Lee’s handwritten lecture notes.</p>
     <p>All curves are computed in your browser: Newton’s method for \(S=1-e^{-cS}\), bisection for the fixed points, Euler–Maclaurin summation for \(\zeta\) and \(\mathrm{Li}_s\), and union–find for the simulations.</p>
@@ -500,13 +505,13 @@ function compStats(dsu, n) {
   const rest = sumS - max;
   return {S: max / n, chi: rest > 0 ? (sumS2 - max * max) / rest : NaN, max};
 }
-function sampleER(n, c) {
+function sampleER(n, c, rng = Math.random) {
   const dsu = makeDSU(n), p = c / (n - 1);
   if (p > 0) {
     const lp = Math.log(1 - p);
     let v = 1, w = -1;
     while (v < n) {
-      w += 1 + Math.floor(Math.log(1 - Math.random()) / lp);
+      w += 1 + Math.floor(Math.log(1 - rng()) / lp);
       while (w >= v && v < n) { w -= v; v++; }
       if (v < n) dsu.union(v, w);
     }
@@ -636,13 +641,14 @@ function setRead(el, rows) {
 }
 
 /* ---------- state ---------- */
-const st = {c: 1.5, z: 4, gamma: 2.5, dist: 'poisson', sim: [], simN: null};
+const st = {c: 1.5, z: 4, gamma: 2.5, dist: 'poisson', sim: [], simJob: null};
 
 /* ---------- reusable network view ---------- */
 function mulberry32(seed) {
   return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
     t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
 }
+const newSeed = () => (Math.random() * 2 ** 32) >>> 0;   // recorded with each simulation result
 function compColor(rank) {
   // spread hues by the golden angle, skipping the blue (175–225°) and purple (255–300°) used for highlighted clusters
   let h = (28 + rank * 137.508) % 265;
@@ -651,7 +657,7 @@ function compColor(rank) {
   return C.dark ? `hsl(${h.toFixed(0)} 65% 66%)` : `hsl(${h.toFixed(0)} 60% 42%)`;
 }
 class GraphView {
-  constructor(cv) { this.cv = cv; this.n = 0; this.m = 0; this.alpha = 0; this.running = false;
+  constructor(cv) { this.cv = cv; this.n = 0; this.m = 0; this.alpha = 0; this.running = false; this.visible = true; this.dirty = false;
     this.a = new Int32Array(0); this.b = new Int32Array(0); this.frame = this.frame.bind(this); }
   setN(n, keepPos) {
     this.n = n;
@@ -738,11 +744,22 @@ class GraphView {
     if (emph) dots(giantN, C.panel, rG + 1.4);
     dots(giantN, C.giant, rG);
   }
-  frame() { this.tick(); this.tick(); this.draw(); if (this.alpha > 0.01) requestAnimationFrame(this.frame); else this.running = false; }
+  settle() { this.alpha = 0.3; for (let i = 0; i < 40; i++) this.tick(); this.draw(); }   // static layout for reduced motion
+  frame() {
+    if (!this.visible) { this.running = false; this.dirty = true; return; }   // offscreen: pause, resume on scroll-in
+    if (RM.matches) { this.running = false; this.settle(); return; }          // setting changed while animating
+    this.tick(); this.tick(); this.draw();
+    if (this.alpha > 0.01) requestAnimationFrame(this.frame); else this.running = false;
+  }
   kick() {
-    if (RM.matches) { this.alpha = 0.3; for (let i = 0; i < 40; i++) this.tick(); this.draw(); return; }
+    if (!this.visible) { this.alpha = Math.max(this.alpha, 0.3); this.dirty = true; return; }
+    if (RM.matches) { this.settle(); return; }
     this.alpha = Math.max(this.alpha, 0.3);
     if (!this.running) { this.running = true; requestAnimationFrame(this.frame); }
+  }
+  setVisible(v) {
+    this.visible = v;
+    if (v && this.dirty) { this.dirty = false; if (this.alpha > 0.01) this.kick(); else this.draw(); }
   }
 }
 
@@ -782,17 +799,18 @@ const kick = () => net.kick();
 
 /* ---------- configuration model: stub matching ---------- */
 const cdfCache = new Map();
-function degreeCDF(n) {
-  // cumulative distribution of p_k for the current model, truncated at k = n − 1
-  const key = st.dist === 'poisson' ? `p${st.c}|${n}` : `g${st.gamma}|${n}`;
+const snapModel = () => Object.freeze({dist: st.dist, c: st.c, gamma: st.gamma});   // never read st inside samplers
+function degreeCDF(n, P) {
+  // cumulative distribution of p_k for the model P, truncated at k = n − 1
+  const key = `${cmKey(P)}|${n}`;
   if (cdfCache.has(key)) return cdfCache.get(key);
   const kmax = n - 1, cdf = new Float64Array(kmax + 1);
   let acc = 0;
-  if (st.dist === 'poisson') {
-    let pk = Math.exp(-st.c);
-    for (let k = 0; k <= kmax; k++) { if (k > 0) pk *= st.c / k; acc += pk; cdf[k] = acc; }
+  if (P.dist === 'poisson') {
+    let pk = Math.exp(-P.c);
+    for (let k = 0; k <= kmax; k++) { if (k > 0) pk *= P.c / k; acc += pk; cdf[k] = acc; }
   } else {
-    for (let k = 1; k <= kmax; k++) { acc += Math.pow(k, -st.gamma); cdf[k] = acc; }
+    for (let k = 1; k <= kmax; k++) { acc += Math.pow(k, -P.gamma); cdf[k] = acc; }
   }
   for (let k = 0; k <= kmax; k++) cdf[k] /= acc;
   if (cdfCache.size > 60) cdfCache.clear();
@@ -800,22 +818,28 @@ function degreeCDF(n) {
   return cdf;
 }
 function invCDF(cdf, U) { let lo = 0, hi = cdf.length - 1; while (lo < hi) { const m = (lo + hi) >> 1; if (cdf[m] < U) lo = m + 1; else hi = m; } return lo; }
-function configModel(n, U, rng) {
+function configModel(n, U, rng, P) {
   // U: per-node uniforms (fixed per sample so degrees change smoothly with c or γ)
-  const cdf = degreeCDF(n), deg = new Int32Array(n);
-  let K = 0, kmax = 0;
-  for (let i = 0; i < n; i++) { deg[i] = invCDF(cdf, U[i]); K += deg[i]; if (deg[i] > kmax) kmax = deg[i]; }
+  const cdf = degreeCDF(n, P), deg = new Int32Array(n);
+  let K = 0, kmaxDrawn = 0;
+  for (let i = 0; i < n; i++) { deg[i] = invCDF(cdf, U[i]); K += deg[i]; if (deg[i] > kmaxDrawn) kmaxDrawn = deg[i]; }
   const stubs = new Int32Array(K);
   for (let i = 0, t = 0; i < n; i++) for (let d = 0; d < deg[i]; d++) stubs[t++] = i;
   for (let i = K - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); const tmp = stubs[i]; stubs[i] = stubs[j]; stubs[j] = tmp; }
-  const A = [], B = [];
-  let loops = 0;
-  for (let t = 0; t + 1 < K; t += 2) { if (stubs[t] === stubs[t + 1]) { loops++; continue; } A.push(stubs[t]); B.push(stubs[t + 1]); }
-  return {a: Int32Array.from(A), b: Int32Array.from(B), K, kmax, loops, odd: K % 2};
+  const A = [], B = [], dk = deg.fill(0);   // reuse deg for the realized degrees of the kept edges
+  let loops = 0, kmax = 0;
+  for (let t = 0; t + 1 < K; t += 2) {
+    const i = stubs[t], j = stubs[t + 1];
+    if (i === j) { loops++; continue; }
+    A.push(i); B.push(j);
+    if (++dk[i] > kmax) kmax = dk[i];
+    if (++dk[j] > kmax) kmax = dk[j];
+  }
+  return {a: Int32Array.from(A), b: Int32Array.from(B), K, kmaxDrawn, kmax, loops, odd: K % 2};
 }
-function cmLargest(n) {
-  const U = new Float64Array(n); for (let i = 0; i < n; i++) U[i] = Math.random();
-  const g = configModel(n, U, Math.random), dsu = makeDSU(n);
+function cmLargest(n, P, rng) {
+  const U = new Float64Array(n); for (let i = 0; i < n; i++) U[i] = rng();
+  const g = configModel(n, U, rng, P), dsu = makeDSU(n);
   for (let k = 0; k < g.a.length; k++) dsu.union(g.a[k], g.b[k]);
   return compStats(dsu, n).S;
 }
@@ -823,12 +847,13 @@ const cmv = new GraphView(document.getElementById('cv-cmnet'));
 cmv.n = 300;
 let cmU = null, cmSeed = 1, cmInfo = null;
 function cmResample(keepPos) {
-  cmU = new Float64Array(cmv.n); for (let i = 0; i < cmv.n; i++) cmU[i] = Math.random();
-  cmSeed = (Math.random() * 2 ** 31) | 0;
+  cmSeed = newSeed();   // one seed fixes both the per-node degree draws and the stub pairing of this sample
+  const rU = mulberry32(cmSeed ^ 0x9E3779B9);
+  cmU = new Float64Array(cmv.n); for (let i = 0; i < cmv.n; i++) cmU[i] = rU();
   cmv.setN(cmv.n, keepPos);
 }
 function cmUpdate() {
-  cmInfo = configModel(cmv.n, cmU, mulberry32(cmSeed));
+  cmInfo = configModel(cmv.n, cmU, mulberry32(cmSeed), snapModel());
   cmv.setEdges(cmInfo.a, cmInfo.b, cmInfo.a.length);
   cmRead();
   cmv.kick();
@@ -837,52 +862,62 @@ function cmRead() {
   const M = model();
   setRead($('#cmnet-read'), [
     ['largest component', `${fmt(cmv.S)} n`, `theory S = ${fmt(M.S)}`],
-    ['mean degree', (cmInfo.K / cmv.n).toFixed(2), `theory ⟨k⟩ = ${fmt(M.kmean, 2)}`],
-    ['max degree', `${cmInfo.kmax}`],
-    ['self-loops dropped', `${cmInfo.loops}`],
-    ['components', `${cmv.ncomp}`, `(${cmv.nnontriv} with ≥ 2 nodes)`]
-  ].concat(st.cmCheck && st.cmCheck.key === cmKey() ? [['n = 10⁴ average', fmt(st.cmCheck.S), `(${st.cmCheck.R} samples)`]] : []));
+    ['mean degree 2M/n', (2 * cmv.m / cmv.n).toFixed(2), `(drawn ${(cmInfo.K / cmv.n).toFixed(2)}; theory ⟨k⟩ = ${fmt(M.kmean, 2)})`],
+    ['max degree', `${cmInfo.kmax}`, `(drawn ${cmInfo.kmaxDrawn})`],
+    ['dropped', `${cmInfo.loops} self-loops`, cmInfo.odd ? '+ 1 leftover stub' : ''],
+    ['components', `${cmv.ncomp}`, `(${cmv.nnontriv} with ≥ 2 nodes)`],
+    ['sample seed', `${cmSeed}`]
+  ].concat(st.cmCheck && st.cmCheck.key === cmKey(snapModel()) ? [['n = 10⁴ average', fmt(st.cmCheck.S), `(${st.cmCheck.R} samples, seed ${st.cmCheck.seed})`]] : []));
 }
-const cmKey = () => (st.dist === 'poisson' ? `p${st.c}` : `g${st.gamma}`);
+const cmKey = P => (P.dist === 'poisson' ? `p${P.c}` : `g${P.gamma}`);
+const cmDesc = P => (P.dist === 'poisson' ? `Poisson, c = ${P.c.toFixed(2)}` : `power law, γ = ${P.gamma.toFixed(2)}`);
 
 /* ---------- section draws ---------- */
+const once = f => { let v; return () => (v ??= f()); };   // numeric caches for fixed curves; colors are applied at draw time
+const erFixed = once(() => {
+  const cs = [...lin(0, 1, 40), ...lin(1, 1.3, 120), ...lin(1.3, 4, 120)];
+  return {grey: [0.5, 1, 1.5].map(cc => lin(0, 1, 160).map(s => [s, 1 - Math.exp(-cc * s)])), S: cs.map(cc => [cc, erS(cc)])};
+});
+const critFixed = once(() => {
+  const cs = [...lin(0, .995, 200), ...lin(1.005, 3, 300)], eps = logs(1e-3, 1, 160);
+  return {below: cs.filter(x => x < 1).map(x => [x, erChi(x)]), above: cs.filter(x => x > 1).map(x => [x, erChi(x)]),
+    lin2: eps.map(e => [e, 2 * e]), S: eps.map(e => [e, erS(1 + e)]),
+    chiB: eps.map(e => [e, erChi(1 - e)]), chiA: eps.map(e => [e, erChi(1 + e)])};
+});
 function drawER() {
   const c = st.c, S = erS(c);
   const curve = cc => lin(0, 1, 160).map(s => [s, 1 - Math.exp(-cc * s)]);
   plot($('#cv-ger'), {x: [0, 1], y: [0, 1], xlabel: 'S', ylabel: 'y',
     lines: [{pts: [[0, 0], [1, 1]], color: C.muted, dash: [5, 4], width: 1.3},
-      ...[0.5, 1, 1.5].map(cc => ({pts: curve(cc), color: C.muted, width: 1.2, alpha: .45})),
+      ...erFixed().grey.map(pts => ({pts, color: C.muted, width: 1.2, alpha: .45})),
       {pts: curve(c), color: C.giant, width: 2.6}],
     vlines: S > 0 ? [{x: S, color: C.giant}] : [],
     dots: [{x: S, y: S, color: C.giant, r: 5, hollow: S === 0}],
     notes: S > 0 ? [{x: S > 0.5 ? S - 0.02 : 1, y: .07, align: 'right', text: `a nontrivial solution exists: S = ${S.toFixed(3)}`, color: C.giant}]
                  : [{x: 1, y: .07, align: 'right', text: 'only the trivial solution S = 0', color: C.crit}]});
-  const cs = [...lin(0, 1, 40), ...lin(1, 1.3, 120), ...lin(1.3, 4, 120)];
   plot($('#cv-ser'), {x: [0, 4], y: [0, 1], xlabel: 'average degree c', ylabel: 'S',
     vlines: [{x: c, color: C.giant}],
-    lines: [{pts: cs.map(cc => [cc, erS(cc)]), color: C.ink, width: 2}],
+    lines: [{pts: erFixed().S, color: C.ink, width: 2}],
     dots: [...st.sim.map(d => ({x: d.c, y: d.S, color: C.crit, r: 3.5, alpha: .85})),
       {x: c, y: S, color: C.giant, r: 5}, {x: c, y: net.S, color: C.giant, r: 5, hollow: true}]});
   setRead($('#er-read'), [['c', fmt(c, 2)], ['S', fmt(S, 4)], ['u = 1 − S', fmt(1 - S, 4)],
     ['regime', c > 1 ? 'giant component' : c < 1 ? 'no giant component' : 'critical point']]
-    .concat(st.simN ? [['dots', `n = ${st.simN}`]] : []));
+    .concat(st.simJob ? [['dots', `n = ${st.simJob.n}`, `(${st.simJob.R} samples per point, seed ${st.simJob.seed})`]] : []));
 }
 function drawCrit() {
-  const c = st.c;
-  const cs = [...lin(0, .995, 200), ...lin(1.005, 3, 300)];
+  const c = st.c, F = critFixed();
   plot($('#cv-chi'), {x: [0, 3], y: [0, 8], xlabel: 'mean degree c', ylabel: '⟨s⟩',
     vlines: [{x: 1, color: C.muted}, {x: c, color: C.giant, dash: []}],
-    lines: [{pts: cs.filter(x => x < 1).map(x => [x, erChi(x)]), color: C.crit, width: 2.2},
-            {pts: cs.filter(x => x > 1).map(x => [x, erChi(x)]), color: C.giant, width: 2.2}],
+    lines: [{pts: F.below, color: C.crit, width: 2.2},
+            {pts: F.above, color: C.giant, width: 2.2}],
     dots: st.sim.map(d => ({x: d.c, y: d.chi, color: C.ink, r: 3.3, alpha: .7}))});
-  const eps = logs(1e-3, 1, 160);
   plot($('#cv-llS'), {x: [1e-3, 1], y: [1e-3, 1], xlog: true, ylog: true, xlabel: 'c − 1', ylabel: 'S',
-    lines: [{pts: eps.map(e => [e, 2 * e]), color: C.muted, dash: [5, 4], width: 1.4},
-            {pts: eps.map(e => [e, erS(1 + e)]), color: C.crit, width: 2.4}],
+    lines: [{pts: F.lin2, color: C.muted, dash: [5, 4], width: 1.4},
+            {pts: F.S, color: C.crit, width: 2.4}],
     notes: [{x: 2e-3, y: 0.25, text: 'β = 1', color: C.crit}]});
   plot($('#cv-llchi'), {x: [1e-3, 1], y: [0.5, 2000], xlog: true, ylog: true, xlabel: '|c − 1|', ylabel: '⟨s⟩',
-    lines: [{pts: eps.map(e => [e, erChi(1 - e)]), color: C.crit, width: 2.4},
-            {pts: eps.map(e => [e, erChi(1 + e)]), color: C.giant, width: 2.4, dash: [7, 4]}],
+    lines: [{pts: F.chiB, color: C.crit, width: 2.4},
+            {pts: F.chiA, color: C.giant, width: 2.4, dash: [7, 4]}],
     notes: [{x: 0.03, y: 300, text: 'γ = 1', color: C.crit}]});
 }
 function effTable() {
@@ -935,7 +970,7 @@ function treeUpdate() {
     ['occupied bonds', `${occ} / ${n - 1}`], ['root cluster', `${tree.rootSize} nodes`],
     ['reaches generation D', tree.reach ? 'yes' : 'no', `probability ${fmt(tree.PD)}`],
     ['P<sub>∞</sub> (D → ∞)', fmt(bethe(st.z, p).P)]
-  ].concat(st.treeMC && st.treeMC.key === `${st.z}|${st.c}` ? [['estimate, depth 50', fmt(st.treeMC.P), `exact ${fmt(tree.P50)}`]] : []));
+  ].concat(st.treeMC && st.treeMC.key === `${st.z}|${st.c}` ? [['estimate, depth 50', fmt(st.treeMC.P), `exact ${fmt(tree.P50)}; ${st.treeMC.T} trees, seed ${st.treeMC.seed}`]] : []));
 }
 function drawTree() {
   if (!tree.cls) return;
@@ -969,36 +1004,47 @@ function drawTree() {
   }
   ctx.strokeStyle = C.purple; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(W / 2, H / 2, rad + 5, 0, 2 * Math.PI); ctx.stroke();
 }
-function gauss() { let u = 0, v = 0; while (u === 0) u = Math.random(); while (v === 0) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
-function binom(n, p) {
+function gauss(rng) { let u = 0, v = 0; while (u === 0) u = rng(); while (v === 0) v = rng(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
+function binom(n, p, rng) {
   if (p <= 0 || n === 0) return 0;
   if (p >= 1) return n;
-  if (n * p < 30) { let k = 0, i = -1; const lq = Math.log(1 - p); for (;;) { i += 1 + Math.floor(Math.log(1 - Math.random()) / lq); if (i >= n) return k; k++; } }
-  return Math.max(0, Math.min(n, Math.round(n * p + Math.sqrt(n * p * (1 - p)) * gauss())));
+  if (n * p < 30) { let k = 0, i = -1; const lq = Math.log(1 - p); for (;;) { i += 1 + Math.floor(Math.log(1 - rng()) / lq); if (i >= n) return k; k++; } }
+  return Math.max(0, Math.min(n, Math.round(n * p + Math.sqrt(n * p * (1 - p)) * gauss(rng))));
 }
-function rootReaches(z, p, depth) {
-  let a = binom(z, p);
-  for (let d = 2; d <= depth; d++) { if (a === 0) return false; if (a > 1e5) return true; a = binom(a * (z - 1), p); }
+function rootReaches(z, p, depth, rng) {
+  let a = binom(z, p, rng);
+  for (let d = 2; d <= depth; d++) { if (a === 0) return false; if (a > 1e5) return true; a = binom(a * (z - 1), p, rng); }
   return a > 0;
 }
 
-function drawBethe() {
-  const z = st.z, c = st.c, cmax = Math.min(4, z - 1);
+const erDash = once(() => [...lin(0, 1, 30), ...lin(1, 4, 240)].map(x => [x, erS(x)]));
+const betheCache = new Map();
+function betheCurves(z) {
+  // P∞ curves for one z (and the faint z = 3 reference on the same p grid); they do not depend on c
+  if (betheCache.has(z)) return betheCache.get(z);
+  const cmax = Math.min(4, z - 1);
   const cs = [...lin(0, 1, 30), ...lin(1, Math.min(1.4, cmax), 120), ...lin(Math.min(1.4, cmax), cmax, 120)];
   const curveC = zz => cs.filter(x => x <= zz - 1).map(x => [x, bethe(zz, x / (zz - 1)).P]);
-  const ercs = [...lin(0, 1, 30), ...lin(1, 4, 240)];
+  const pc = 1 / (z - 1), ps = [...lin(0, pc, 20), ...lin(pc, Math.min(1, pc * 1.6), 120), ...lin(Math.min(1, pc * 1.6), 1, 120)];
+  const o = {C: curveC(z), C3: z !== 3 ? (betheCache.get(3)?.C ?? curveC(3)) : null,
+    P: ps.map(q => [q, bethe(z, q).P]), P3: z !== 3 ? ps.map(q => [q, bethe(3, q).P]) : null};
+  betheCache.set(z, o);
+  return o;
+}
+function drawBethe() {
+  const z = st.z, c = st.c, BC = betheCurves(z);
   plot($('#cv-bethe'), {x: [0, 4], y: [0, 1], xlabel: 'c = p(z − 1)', ylabel: ['P', '∞'],
     vlines: [{x: c, color: C.purple}],
-    lines: [{pts: ercs.map(x => [x, erS(x)]), color: C.ink, dash: [5, 4], width: 1.5},
-            ...(z !== 3 ? [{pts: curveC(3), color: C.purple, width: 1.3, alpha: .35}] : []),
-            {pts: curveC(z), color: C.purple, width: 2.6}],
+    lines: [{pts: erDash(), color: C.ink, dash: [5, 4], width: 1.5},
+            ...(z !== 3 ? [{pts: BC.C3, color: C.purple, width: 1.3, alpha: .35}] : []),
+            {pts: BC.C, color: C.purple, width: 2.6}],
     dots: c <= z - 1 ? [{x: c, y: bethe(z, c / (z - 1)).P, color: C.purple, r: 5}] : []});
-  const pc = 1 / (z - 1), ps = [...lin(0, pc, 20), ...lin(pc, Math.min(1, pc * 1.6), 120), ...lin(Math.min(1, pc * 1.6), 1, 120)];
+  const pc = 1 / (z - 1);
   const p = c / (z - 1);
   plot($('#cv-bethe-p'), {x: [0, 1], y: [0, 1], xlabel: 'bond probability p', ylabel: ['P', '∞'],
     vlines: [{x: pc, color: C.crit}],
-    lines: [{pts: ps.map(q => [q, bethe(z, q).P]), color: C.purple, width: 2.6},
-            ...(z === 3 ? [] : [{pts: ps.map(q => [q, bethe(3, q).P]), color: C.purple, width: 1.3, alpha: .35}])],
+    lines: [{pts: BC.P, color: C.purple, width: 2.6},
+            ...(z === 3 ? [] : [{pts: BC.P3, color: C.purple, width: 1.3, alpha: .35}])],
     dots: p <= 1 ? [{x: p, y: bethe(z, p).P, color: C.purple, r: 5}] : [],
     notes: [{x: Math.min(pc + .02, .8), y: .9, text: `threshold p = 1/${z - 1}`, color: C.crit}]});
   const r = bethe(z, Math.min(p, 1));
@@ -1010,7 +1056,8 @@ function drawBethe() {
   if (tree.z !== st.z) treeBuild();
   treeUpdate(); drawTree();
 }
-const model = () => (st.dist === 'poisson' ? poissonModel(st.c) : powerModel(st.gamma));
+const modelOf = P => (P.dist === 'poisson' ? poissonModel(P.c) : powerModel(P.gamma));
+const model = () => modelOf(st);
 function drawCM() {
   const M = model();
   const us = lin(0, 1, 220);
@@ -1035,28 +1082,32 @@ function drawCM() {
     ['⟨k⟩', fmt(M.kmean, 3)], ['g₁′(1)', fmt(M.branch, 3)], ['u', fmt(M.u, 4)], ['S = 1 − g₀(u)', fmt(M.S, 4)],
     ['', exists ? 'giant component exists' : 'no giant component']]);
 }
-let SG = null, GC = null;
+// single definition of the γ range: the sliders, the S(γ) and ⟨k⟩(γ) axes, the theory curves and the batch simulation all use it
+const GAMMA = {min: 1.5, max: 4.5, axisMin: 1};   // the S(γ) axis starts at 1 to show the plateau S = 1 below γ = 2
+$$('input[data-bind="gamma"]').forEach(el => { el.min = GAMMA.min; el.max = GAMMA.max; });
+let SG = null, GC = null, KG = null;
 function drawPL() {
   if (!SG) {
     GC = gammaCrit();
     $('#gc-out').textContent = GC.toFixed(4);
-    const gs = [...lin(1.0, 2, 10), ...lin(2.003, 3.6, 150), ...lin(3.6, 4, 15)];
+    const gs = [...lin(GAMMA.axisMin, 2, 10), ...lin(2.003, 3.6, 150), ...lin(3.6, GAMMA.max, 25)];
     SG = gs.map(g => [g, g <= 2 ? 1 : powerModel(g).S]);
+    KG = lin(2.02, GAMMA.max, 160).map(x => [x, zeta(x - 1) / zeta(x)]);
   }
   const g = st.gamma, M = powerModel(g);
-  plot($('#cv-sg'), {x: [1, 4], y: [0, 1.05], xlabel: 'exponent γ', ylabel: 'S',
+  plot($('#cv-sg'), {x: [GAMMA.axisMin, GAMMA.max], y: [0, 1.05], xlabel: 'exponent γ', ylabel: 'S',
     vlines: [{x: 2, color: C.muted, dash: [2, 3]}, {x: GC, color: C.muted, dash: [2, 3]}, {x: g, color: C.cm, dash: []}],
     lines: [{pts: SG, color: C.ink, width: 2.2}],
     dots: [...(st.plSim || []).map(d => ({x: d.g, y: d.S, color: C.crit, r: 3.5, alpha: .85})),
            ...(g >= 1 ? [{x: g, y: M.S, color: C.cm, r: 5}] : [])],
     notes: [{x: 2.05, y: .12, text: '2 < γ ≤ 3: ⟨k²⟩ → ∞', color: C.note}]});
-  const kg = lin(2.02, 4.5, 160).map(x => [x, zeta(x - 1) / zeta(x)]);
-  plot($('#cv-kg'), {x: [2, 4.5], y: [0, 6], xlabel: 'exponent γ', ylabel: '⟨k⟩',
+  plot($('#cv-kg'), {x: [2, GAMMA.max], y: [0, 6], xlabel: 'exponent γ', ylabel: '⟨k⟩',
     vlines: [{x: g, color: C.cm, dash: []}],
-    lines: [{pts: kg, color: C.cm, width: 2.4}],
+    lines: [{pts: KG, color: C.cm, width: 2.4}],
     dots: g > 2 ? [{x: g, y: M.kmean, color: C.cm, r: 5}] : []});
   setRead($('#pl-read'), [['γ', fmt(g, 2)], ['ζ(γ)', fmt(zeta(g), 4)], ['⟨k⟩', fmt(M.kmean, 3)],
-    ['(⟨k²⟩ − ⟨k⟩)/⟨k⟩', fmt(M.branch, 3)], ['u', fmt(M.u, 4)], ['S', fmt(M.S, 4)]]);
+    ['(⟨k²⟩ − ⟨k⟩)/⟨k⟩', fmt(M.branch, 3)], ['u', fmt(M.u, 4)], ['S', fmt(M.S, 4)]]
+    .concat(st.plJob ? [['dots', `n = ${st.plJob.n}`, `(${st.plJob.R} samples per γ, seed ${st.plJob.seed})`]] : []));
 }
 
 /* ---------- wiring ---------- */
@@ -1065,16 +1116,32 @@ function syncInputs() {
   $$('output[data-out]').forEach(el => { el.textContent = (+st[el.dataset.out]).toFixed(2); });
   $('#z').value = st.z; $('#z-out').textContent = st.z;
 }
+// Sections out of view are not redrawn on every input: they are marked dirty and drawn when they scroll in,
+// or once the input has been idle for a moment (so their readouts never stay stale for long).
+const SECTION_DRAW = {er: drawER, crit: drawCrit, bethe: drawBethe, cm: drawCM, pl: drawPL};
+const secVisible = new Set(Object.keys(SECTION_DRAW)), secDirty = new Set();
+let flushT = 0;
+function flushDirty() { for (const id of secDirty) SECTION_DRAW[id](); secDirty.clear(); }
+function redraw(...ids) {
+  for (const id of ids) { if (secVisible.has(id)) { secDirty.delete(id); SECTION_DRAW[id](); } else secDirty.add(id); }
+  if (secDirty.size) { clearTimeout(flushT); flushT = setTimeout(flushDirty, 300); }
+}
 function setC(c) {
   st.c = c; syncInputs(); netUpdate(); netRead(); kick();
-  drawER(); drawCrit(); drawBethe(); if (st.dist === 'poisson') { drawCM(); cmUpdate(); }
+  redraw('er', 'crit', 'bethe'); if (st.dist === 'poisson') { redraw('cm'); cmUpdate(); }
 }
-function setGamma(g) { st.gamma = g; syncInputs(); if (st.dist === 'power') { drawCM(); cmUpdate(); } drawPL(); }
-function drawAll() { readColors(); drawNet(); cmv.draw(); drawER(); drawCrit(); drawBethe(); drawCM(); drawPL(); }
+function setGamma(g) { st.gamma = g; syncInputs(); if (st.dist === 'power') { redraw('cm'); cmUpdate(); } redraw('pl'); }
+function drawAll() { readColors(); drawNet(); cmv.draw(); drawER(); drawCrit(); drawBethe(); drawCM(); drawPL(); secDirty.clear(); }
+// merge input events: a slider can fire several per frame; only the last value of each kind is applied, once per frame
+const queued = new Map(); let qRaf = 0;
+function queue(kind, f) {
+  queued.set(kind, f);
+  if (!qRaf) qRaf = requestAnimationFrame(() => { qRaf = 0; const fs = [...queued.values()]; queued.clear(); fs.forEach(g => g()); });
+}
 
-$$('input[data-bind="c"]').forEach(el => el.addEventListener('input', () => { stopSweep(); setC(+el.value); }));
-$$('input[data-bind="gamma"]').forEach(el => el.addEventListener('input', () => setGamma(+el.value)));
-$('#z').addEventListener('input', e => { st.z = +e.target.value; syncInputs(); drawBethe(); });
+$$('input[data-bind="c"]').forEach(el => el.addEventListener('input', () => { stopSweep(); const v = +el.value; queue('c', () => setC(v)); }));
+$$('input[data-bind="gamma"]').forEach(el => el.addEventListener('input', () => { const v = +el.value; queue('gamma', () => setGamma(v)); }));
+$('#z').addEventListener('input', e => { const v = +e.target.value; queue('z', () => { st.z = v; syncInputs(); redraw('bethe'); }); });
 $('#net-n').addEventListener('change', e => { net.n = +e.target.value; netGenerate(false); netUpdate(); net.relax(200); netRead(); kick(); drawER(); });
 $('#btn-resample').addEventListener('click', () => { netGenerate(true); netUpdate(); netRead(); kick(); drawER(); });
 
@@ -1087,8 +1154,8 @@ $('#btn-sweep').addEventListener('click', () => {
   const step = t => {
     if (!sweeping) return;
     const f = Math.min(1, (t - t0) / T);
-    st.c = Math.round(c1 * f * 100) / 100; syncInputs(); netUpdate(); netRead(); kick(); drawER(); drawCrit(); drawBethe();
-    if (st.dist === 'poisson') { drawCM(); cmUpdate(); }
+    // user-started, so it also runs under reduced motion; the layout then settles statically each frame (GraphView.kick)
+    setC(Math.round(c1 * f * 100) / 100);
     if (f < 1) requestAnimationFrame(step); else stopSweep();
   };
   requestAnimationFrame(step);
@@ -1098,7 +1165,7 @@ function setDist(d) {
   st.dist = d;
   $('#d-poisson').setAttribute('aria-pressed', d === 'poisson'); $('#d-power').setAttribute('aria-pressed', d === 'power');
   $('#row-cm-c').hidden = d !== 'poisson'; $('#row-cm-g').hidden = d !== 'power';
-  drawCM(); cmUpdate();
+  redraw('cm'); cmUpdate();
 }
 $('#d-poisson').addEventListener('click', () => setDist('poisson'));
 $('#d-power').addEventListener('click', () => setDist('power'));
@@ -1107,22 +1174,36 @@ let simRunning = false;
 $('#btn-sim').addEventListener('click', async () => {
   if (simRunning) return;
   simRunning = true;
-  const btn = $('#btn-sim'), n = +$('#sim-n').value, R = +$('#sim-r').value;
+  const btn = $('#btn-sim');
+  // the job is fixed when it starts; later changes to the menus do not leak into it
+  const job = Object.freeze({n: +$('#sim-n').value, R: +$('#sim-r').value, seed: newSeed()}), rng = mulberry32(job.seed), {n, R} = job;
   const cs = [...lin(0.1, 3.5, 35), 0.95, 1.05].sort((a, b) => a - b);
-  st.sim = []; st.simN = n;
+  st.sim = []; st.simJob = job;
   for (let i = 0; i < cs.length; i++) {
     const c = cs[i];
     let S = 0, chi = 0, cn = 0;
-    for (let r = 0; r < R; r++) { const o = sampleER(n, c); S += o.S; if (Number.isFinite(o.chi)) { chi += o.chi; cn++; } }
+    for (let r = 0; r < R; r++) { const o = sampleER(n, c, rng); S += o.S; if (Number.isFinite(o.chi)) { chi += o.chi; cn++; } }
     st.sim.push({c, S: S / R, chi: cn ? chi / cn : NaN});
     btn.textContent = `Simulating ${Math.round(100 * (i + 1) / cs.length)}%`;
     drawER(); drawCrit();
     await new Promise(res => setTimeout(res, 0));
   }
   btn.textContent = 'Run again';
+  announce(`Simulations done: ${cs.length} values of c, ${R} samples of n = ${n} each (seed ${job.seed}).`);
   simRunning = false;
 });
 
+const announce = msg => { $('#sr-status').textContent = msg; };   // completion only; progress is not announced
+// offscreen sections and network views: pause layout and defer drawing until they come back into view
+const secIO = new IntersectionObserver(es => {
+  for (const e of es) {
+    const id = e.target.id;
+    if (e.isIntersecting) { secVisible.add(id); if (secDirty.delete(id)) SECTION_DRAW[id](); } else secVisible.delete(id);
+  }
+}, {rootMargin: '200px 0px'});
+Object.keys(SECTION_DRAW).forEach(id => secIO.observe(document.getElementById(id)));
+const viewIO = new IntersectionObserver(es => es.forEach(e => (e.target === net.cv ? net : cmv).setVisible(e.isIntersecting)), {rootMargin: '100px 0px'});
+viewIO.observe(net.cv); viewIO.observe(cmv.cv);
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);
 new MutationObserver(drawAll).observe(document.documentElement, {attributes: true, attributeFilter: ['data-theme']});
 let rz;
@@ -1140,15 +1221,17 @@ $('#btn-tree-resample').addEventListener('click', () => { tree.r = Float64Array.
 let treeBusy = false;
 $('#btn-tree-mc').addEventListener('click', async () => {
   if (treeBusy) return; treeBusy = true;
-  const z = st.z, c = st.c, p = Math.min(1, c / (z - 1)), T = 10000;
+  const job = Object.freeze({z: st.z, c: st.c, T: 10000, seed: newSeed()}), rng = mulberry32(job.seed);
+  const {z, c, T} = job, p = Math.min(1, c / (z - 1));
   let hit = 0;
   for (let t = 0; t < T; t++) {
-    if (rootReaches(z, p, 50)) hit++;
+    if (rootReaches(z, p, 50, rng)) hit++;
     if (t % 1000 === 999) { $('#tree-status').textContent = `Growing trees: ${t + 1}/${T}`; await nextFrame(); }
   }
-  st.treeMC = {key: `${z}|${c}`, P: hit / T};
+  st.treeMC = {key: `${z}|${c}`, P: hit / T, T, seed: job.seed};
   const se = Math.sqrt(hit / T * (1 - hit / T) / T);
-  $('#tree-status').textContent = `Root reached depth 50 in ${(hit / T).toFixed(3)} ± ${se.toFixed(3)} of ${T} trees (z = ${z}, p = ${p.toFixed(3)}).`;
+  $('#tree-status').textContent = `Root reached depth 50 in ${(hit / T).toFixed(3)} ± ${se.toFixed(3)} of ${T} trees (z = ${z}, p = ${p.toFixed(3)}, seed ${job.seed}).`;
+  announce($('#tree-status').textContent);
   treeUpdate(); treeBusy = false;
 });
 $('#cm-n').addEventListener('change', e => { cmv.n = +e.target.value; cmResample(false); cmUpdate(); cmv.relax(200); cmv.kick(); });
@@ -1157,27 +1240,32 @@ const nextFrame = () => new Promise(res => setTimeout(res, 0));
 let cmBusy = false;
 $('#btn-cm-check').addEventListener('click', async () => {
   if (cmBusy) return; cmBusy = true;
-  const R = 10, key = cmKey();
+  // snapshot the model when the job starts; the samplers and the theory value use only this snapshot
+  const job = Object.freeze({P: snapModel(), n: 10000, R: 10, seed: newSeed()}), rng = mulberry32(job.seed), {P, n, R} = job;
   let S = 0;
-  for (let r = 0; r < R; r++) { S += cmLargest(10000); $('#cm-status').textContent = `Sampling n = 10⁴ networks: ${r + 1}/${R}`; await nextFrame(); }
-  st.cmCheck = {key, S: S / R, R};
-  $('#cm-status').textContent = `Average largest component over ${R} networks with n = 10⁴: ${(S / R).toFixed(3)} (theory ${model().S.toFixed(3)}).`;
+  for (let r = 0; r < R; r++) { S += cmLargest(n, P, rng); $('#cm-status').textContent = `Sampling n = 10⁴ networks (${cmDesc(P)}): ${r + 1}/${R}`; await nextFrame(); }
+  st.cmCheck = {key: cmKey(P), S: S / R, R, seed: job.seed};
+  const moved = cmKey(snapModel()) !== cmKey(P) ? ' Settings changed during the run; the average is shown again when you return to them.' : '';
+  $('#cm-status').textContent = `Average largest component over ${R} networks with n = 10⁴ (${cmDesc(P)}, seed ${job.seed}): ${(S / R).toFixed(3)} (theory ${modelOf(P).S.toFixed(3)}).${moved}`;
+  announce($('#cm-status').textContent);
   cmRead(); cmBusy = false;
 });
 let plBusy = false;
 $('#btn-pl-sim').addEventListener('click', async () => {
   if (plBusy) return; plBusy = true;
-  const saveDist = st.dist, saveG = st.gamma, gs = lin(1.6, 4.4, 15), R = 5;
-  st.plSim = [];
+  // the scan's γ values live in this job only; the UI state st is never used as scratch space
+  const job = Object.freeze({gs: lin(GAMMA.min + 0.1, GAMMA.max - 0.1, 15).map(g => +g.toFixed(2)), n: 10000, R: 5, seed: newSeed()});
+  const rng = mulberry32(job.seed), {gs, n, R} = job;
+  st.plSim = []; st.plJob = job;
   for (let i = 0; i < gs.length; i++) {
-    st.dist = 'power'; st.gamma = +gs[i].toFixed(2);
-    let S = 0; for (let r = 0; r < R; r++) S += cmLargest(10000);
-    st.dist = saveDist; st.gamma = saveG;
+    const P = Object.freeze({dist: 'power', gamma: gs[i]});
+    let S = 0; for (let r = 0; r < R; r++) S += cmLargest(n, P, rng);
     st.plSim.push({g: gs[i], S: S / R});
     $('#pl-status').textContent = `${i + 1}/${gs.length} values of γ, ${R} networks each`;
-    drawPL(); await nextFrame();
+    redraw('pl'); await nextFrame();
   }
-  $('#pl-status').textContent = `Done: ${gs.length} values of γ, ${R} networks of n = 10⁴ each.`;
+  $('#pl-status').textContent = `Done: ${gs.length} values of γ (${gs[0]}–${gs[gs.length - 1]}), ${R} networks of n = 10⁴ each, seed ${job.seed}.`;
+  announce($('#pl-status').textContent);
   plBusy = false;
 });
 
@@ -1204,7 +1292,7 @@ syncInputs();
 netRead();
 effTable();
 cmResample(false);
-cmInfo = configModel(cmv.n, cmU, mulberry32(cmSeed));
+cmInfo = configModel(cmv.n, cmU, mulberry32(cmSeed), snapModel());
 cmv.setEdges(cmInfo.a, cmInfo.b, cmInfo.a.length);
 cmv.relax(250);
 cmRead();
